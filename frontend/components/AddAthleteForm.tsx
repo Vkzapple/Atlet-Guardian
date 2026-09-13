@@ -1,0 +1,150 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { Gender, TrainingHistory } from "@/lib/types";
+
+interface AddAthleteFormProps {
+  onSubmit: (payload: {
+    name: string;
+    sport: string;
+    age: number;
+    gender: Gender;
+    heightCm: number;
+    weightKg: number;
+    trainingHistory: TrainingHistory;
+  }) => Promise<void>;
+}
+
+export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
+  const [name, setName] = useState("");
+  const [sport, setSport] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState<Gender>("male");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [trainingHistory, setTrainingHistory] = useState<TrainingHistory>("rutin");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !sport.trim() || !age || !heightCm || !weightKg) {
+      setError("Semua kolom wajib diisi");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        sport: sport.trim(),
+        age: Number(age),
+        gender,
+        heightCm: Number(heightCm),
+        weightKg: Number(weightKg),
+        trainingHistory
+      });
+      setName("");
+      setSport("");
+      setAge("");
+      setHeightCm("");
+      setWeightKg("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menambahkan atlet");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const inputClass =
+    "rounded-xl border border-hairline bg-ink px-3 py-2.5 text-sm text-ivory outline-none focus:border-brand";
+  const labelClass = "text-xs font-medium text-muted";
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Nama atlet</label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Contoh: Raka Pratama"
+          className={inputClass}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Cabang olahraga</label>
+        <input
+          value={sport}
+          onChange={(e) => setSport(e.target.value)}
+          placeholder="Contoh: Lari 400m"
+          className={inputClass}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Usia</label>
+          <input
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            type="number"
+            placeholder="21"
+            className={inputClass}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Jenis kelamin</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value as Gender)}
+            className={inputClass}
+          >
+            <option value="male">Laki-laki</option>
+            <option value="female">Perempuan</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Tinggi (cm)</label>
+          <input
+            value={heightCm}
+            onChange={(e) => setHeightCm(e.target.value)}
+            type="number"
+            placeholder="175"
+            className={inputClass}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Berat (kg)</label>
+          <input
+            value={weightKg}
+            onChange={(e) => setWeightKg(e.target.value)}
+            type="number"
+            placeholder="68"
+            className={inputClass}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Riwayat latihan</label>
+        <select
+          value={trainingHistory}
+          onChange={(e) => setTrainingHistory(e.target.value as TrainingHistory)}
+          className={inputClass}
+        >
+          <option value="pemula">Pemula</option>
+          <option value="rutin">Rutin</option>
+          <option value="terlatih">Terlatih</option>
+        </select>
+      </div>
+      {error && <p className="text-xs text-critical">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-ivory disabled:opacity-50"
+      >
+        {submitting ? "Menyimpan…" : "Simpan Atlet"}
+      </button>
+    </form>
+  );
+}

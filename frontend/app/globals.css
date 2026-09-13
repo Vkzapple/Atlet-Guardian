@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: 10 15 26;
+  --color-surface: 18 26 43;
+  --color-surface-raised: 24 35 56;
+  --color-hairline: 35 46 72;
+  --color-muted: 124 138 168;
+  --color-ivory: 237 241 247;
+  --color-optimal: 47 230 163;
+  --color-caution: 255 184 77;
+  --color-warning: 255 138 76;
+  --color-critical: 255 84 112;
+  --color-brand: 76 141 255;
+}
+
+html.light {
+  --color-ink: 246 247 250;
+  --color-surface: 255 255 255;
+  --color-surface-raised: 241 244 249;
+  --color-hairline: 224 228 236;
+  --color-muted: 100 112 138;
+  --color-ivory: 15 23 36;
+}
+
+html,
+body {
+  background-color: rgb(var(--color-ink));
+  color: rgb(var(--color-ivory));
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
