@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { acknowledgeAlert, getAlerts } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
+import { getMyAthleteId } from "@/lib/myAthlete";
 import { AlertItem } from "@/lib/types";
 import AlertBanner from "@/components/AlertBanner";
 
@@ -14,10 +15,15 @@ export default function AlertsPage() {
   const [tab, setTab] = useState<Tab>("active");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const athleteId = getMyAthleteId();
 
   async function refresh(currentTab: Tab) {
+    if (!athleteId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const res = await getAlerts({ status: currentTab });
+    const res = await getAlerts({ athleteId, status: currentTab });
     setAlerts(res.alerts);
     setLoading(false);
   }
@@ -27,8 +33,9 @@ export default function AlertsPage() {
   }, [tab]);
 
   usePolling(async () => {
+    if (!athleteId) return;
     try {
-      const res = await getAlerts({ status: tab });
+      const res = await getAlerts({ athleteId, status: tab });
       setAlerts(res.alerts);
     } catch {
       return;
@@ -40,9 +47,17 @@ export default function AlertsPage() {
     setAlerts((prev) => prev.filter((a) => a.id !== id));
   }
 
+  if (!athleteId) {
+    return (
+      <div className="px-5 pt-6">
+        <p className="text-sm text-muted">Buat profil kamu dulu di Dasbor untuk melihat peringatan.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 px-5 pt-6">
-      <h1 className="text-xl font-bold text-ivory">Peringatan</h1>
+      <h1 className="text-xl font-bold text-ivory">Peringatan Kamu</h1>
 
       <div className="flex gap-2 rounded-full bg-surface p-1">
         {(["active", "acknowledged"] as Tab[]).map((t) => (
@@ -70,7 +85,6 @@ export default function AlertsPage() {
             <AlertBanner
               key={alert.id}
               alert={alert}
-              showAthleteName
               onAcknowledge={tab === "active" ? handleAcknowledge : undefined}
             />
           ))}

@@ -4,12 +4,13 @@ import { useMemo, useState } from "react";
 import { calibrateAthlete, acknowledgeAlert, getAlerts, getAthlete } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
 import { Athlete, AlertItem, Reading } from "@/lib/types";
-import { statusColor, trainingHistoryLabel, genderLabel } from "@/lib/status";
+import { statusColor, trainingHistoryLabel, genderLabel, formatRelativeTime } from "@/lib/status";
 import StatusRing from "./StatusRing";
 import VitalCard from "./VitalCard";
 import RecoveryCard from "./RecoveryCard";
 import AlertBanner from "./AlertBanner";
-import RelativeTime from "./RelativeTime";
+import InjuryRiskCard from "./InjuryRiskCard";
+import PaceZonesCard from "./PaceZonesCard";
 
 interface AthleteDashboardProps {
   initialAthlete: Athlete;
@@ -35,7 +36,7 @@ export default function AthleteDashboard({
     try {
       const [athleteRes, alertsRes] = await Promise.all([
         getAthlete(initialAthlete.id),
-        getAlerts({ userId: initialAthlete.id, status: "active" })
+        getAlerts({ athleteId: initialAthlete.id, status: "active" })
       ]);
 
       const nextReading = athleteRes.athlete.latestReading;
@@ -90,13 +91,7 @@ export default function AthleteDashboard({
         <div className="flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1">
           <span className="h-1.5 w-1.5 rounded-full bg-optimal" />
           <span className="text-[11px] text-muted">
-            {lastSynced ? (
-              <>
-                Sinkron <RelativeTime timestamp={lastSynced.toISOString()} />
-              </>
-            ) : (
-              "Menyinkronkan…"
-            )}
+            {lastSynced ? `Sinkron ${formatRelativeTime(lastSynced.toISOString())}` : "Menyinkronkan…"}
           </span>
         </div>
       </header>
@@ -115,12 +110,7 @@ export default function AthleteDashboard({
             <StatusRing
               status={reading.conditionStatus}
               fatigueScore={reading.fatigueScore}
-              subtitle={
-                <>
-                  Zona HR {reading.hrZone} · {reading.riskLevel} ·{" "}
-                  <RelativeTime timestamp={reading.timestamp} />
-                </>
-              }
+              subtitle={`Zona HR ${reading.hrZone} · ${reading.riskLevel} · ${formatRelativeTime(reading.timestamp)}`}
             />
           </div>
 
@@ -170,7 +160,15 @@ export default function AthleteDashboard({
             </div>
           )}
 
+          <InjuryRiskCard
+            injuryRiskPercent={reading.injuryRiskPercent}
+            injuryRiskMethod={reading.injuryRiskMethod}
+            nextSessionRecommendation={reading.nextSessionRecommendation}
+          />
+
           <RecoveryCard minutes={reading.recoveryEstimateMinutes} badgeLabel={`Zona ${reading.hrZone}`} />
+
+          <PaceZonesCard paceZones={reading.paceZones} currentZone={reading.hrZone} />
         </>
       )}
 
@@ -204,7 +202,7 @@ export default function AthleteDashboard({
         </div>
         {athlete.baseline.calibratedAt && (
           <p className="mt-2 text-[11px] text-muted">
-            Terakhir dikalibrasi <RelativeTime timestamp={athlete.baseline.calibratedAt} /> dari{" "}
+            Terakhir dikalibrasi {formatRelativeTime(athlete.baseline.calibratedAt)} dari{" "}
             {athlete.baseline.sampleSize} pembacaan
           </p>
         )}

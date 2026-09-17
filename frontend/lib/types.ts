@@ -1,12 +1,25 @@
 export type ConditionStatus = "optimal" | "caution" | "warning" | "critical";
 export type Gender = "male" | "female";
 export type TrainingHistory = "pemula" | "rutin" | "terlatih";
+export type InjuryHistory = "tidak_ada" | "lutut" | "pergelangan_kaki" | "punggung" | "lainnya";
 
 export interface Baseline {
   restingHR: number;
   maxHR: number;
   calibratedAt: string | null;
   sampleSize: number;
+}
+
+export interface NextSessionRecommendation {
+  target_hr_bpm?: number;
+  target_hr_zone?: number;
+  target_pace_range?: string;
+  text?: string;
+}
+
+export interface PaceZoneInfo {
+  pace_range: string;
+  velocity_kmh_range: [number, number];
 }
 
 export interface Reading {
@@ -29,6 +42,10 @@ export interface Reading {
   recoveryEstimateMinutes: number;
   earlyWarning: boolean;
   warningReasons: string[];
+  injuryRiskPercent: number | null;
+  injuryRiskMethod: "acwr" | "heuristic_awal" | null;
+  nextSessionRecommendation: NextSessionRecommendation;
+  paceZones: Record<string, PaceZoneInfo>;
 }
 
 export interface Athlete {
@@ -40,6 +57,7 @@ export interface Athlete {
   heightCm: number;
   weightKg: number;
   trainingHistory: TrainingHistory;
+  injuryHistory: InjuryHistory;
   baseline: Baseline;
   createdAt: string;
   latestReading: Reading | null;
@@ -47,7 +65,7 @@ export interface Athlete {
 
 export interface AlertItem {
   id: string;
-  userId: string;
+  athleteId: string;
   athleteName: string;
   timestamp: string;
   status: ConditionStatus;

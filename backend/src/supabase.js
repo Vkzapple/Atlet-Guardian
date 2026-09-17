@@ -24,6 +24,7 @@ function mapAthlete(row, latestReadingRow) {
     heightCm: Number(row.height_cm),
     weightKg: Number(row.weight_kg),
     trainingHistory: row.training_history,
+    injuryHistory: row.injury_history || "tidak_ada",
     baseline: {
       restingHR: Number(row.resting_hr),
       maxHR: Number(row.max_hr),
@@ -55,14 +56,20 @@ function mapReading(row) {
     conditionStatus: row.condition_status,
     recoveryEstimateMinutes: row.recovery_estimate_minutes,
     earlyWarning: row.early_warning,
-    warningReasons: row.warning_reasons || []
+    warningReasons: row.warning_reasons || [],
+    injuryRiskPercent: row.injury_risk_percent !== null && row.injury_risk_percent !== undefined
+      ? Number(row.injury_risk_percent)
+      : null,
+    injuryRiskMethod: row.injury_risk_method || null,
+    nextSessionRecommendation: row.next_session_recommendation || {},
+    paceZones: row.pace_zones || {}
   };
 }
 
 function mapAlert(row) {
   return {
     id: row.id,
-    userId: row.user_id,
+    athleteId: row.user_id,
     athleteName: row.athlete_name,
     timestamp: row.created_at,
     status: row.status,
@@ -115,6 +122,7 @@ export async function createAthlete({
   heightCm,
   weightKg,
   trainingHistory,
+  injuryHistory,
   restingHR,
   maxHR
 }) {
@@ -125,7 +133,8 @@ export async function createAthlete({
     gender,
     height_cm: heightCm,
     weight_kg: weightKg,
-    training_history: trainingHistory
+    training_history: trainingHistory,
+    injury_history: injuryHistory || "tidak_ada"
   };
   if (restingHR) insertPayload.resting_hr = restingHR;
   if (maxHR) insertPayload.max_hr = maxHR;
@@ -230,7 +239,11 @@ export async function insertReading(athleteId, reading, evaluation) {
       condition_status: evaluation.conditionStatus,
       recovery_estimate_minutes: evaluation.recoveryEstimateMinutes,
       early_warning: evaluation.earlyWarning,
-      warning_reasons: evaluation.warningReasons
+      warning_reasons: evaluation.warningReasons,
+      injury_risk_percent: evaluation.injuryRiskPercent ?? null,
+      injury_risk_method: evaluation.injuryRiskMethod ?? null,
+      next_session_recommendation: evaluation.nextSessionRecommendation ?? {},
+      pace_zones: evaluation.paceZones ?? {}
     })
     .select("*")
     .single();
@@ -239,11 +252,11 @@ export async function insertReading(athleteId, reading, evaluation) {
   return mapReading(row);
 }
 
-export async function insertAlert({ userId, athleteName, status, reasons, fatigueScore }) {
+export async function insertAlert({ athleteId, athleteName, status, reasons, fatigueScore }) {
   const { data: row, error } = await supabase
     .from("alerts")
     .insert({
-      user_id: userId,
+      user_id: athleteId,
       athlete_name: athleteName,
       status,
       reasons,
@@ -256,9 +269,9 @@ export async function insertAlert({ userId, athleteName, status, reasons, fatigu
   return mapAlert(row);
 }
 
-export async function listAlerts({ userId, status } = {}) {
+export async function listAlerts({ athleteId, status } = {}) {
   let query = supabase.from("alerts").select("*").order("created_at", { ascending: false });
-  if (userId) query = query.eq("user_id", userId);
+  if (athleteId) query = query.eq("user_id", athleteId);
   if (status === "active") query = query.eq("acknowledged", false);
   if (status === "acknowledged") query = query.eq("acknowledged", true);
 

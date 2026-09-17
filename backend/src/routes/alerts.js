@@ -5,8 +5,8 @@ export const alertsRouter = Router();
 
 alertsRouter.get("/", async (req, res, next) => {
   try {
-    const { userId, status } = req.query;
-    const alerts = await listAlerts({ userId, status });
+    const { athleteId, status } = req.query;
+    const alerts = await listAlerts({ athleteId, status });
     res.json({ alerts });
   } catch (err) {
     next(err);

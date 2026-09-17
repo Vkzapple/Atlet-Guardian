@@ -1,11 +1,10 @@
-import { ReactNode } from "react";
 import { ConditionStatus } from "@/lib/types";
 import { statusColor, statusLabel } from "@/lib/status";
 
 interface StatusRingProps {
   status: ConditionStatus;
   fatigueScore: number;
-  subtitle: ReactNode;
+  subtitle: string;
 }
 
 export default function StatusRing({ status, fatigueScore, subtitle }: StatusRingProps) {

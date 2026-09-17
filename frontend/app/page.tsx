@@ -1,54 +1,95 @@
-import Link from "next/link";
-import { getAthletes, getAthleteHistory, getAlerts } from "@/lib/api";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createAthlete, getAthlete, getAthleteHistory, getAlerts } from "@/lib/api";
+import { getMyAthleteId, setMyAthleteId } from "@/lib/myAthlete";
+import { Athlete, Reading, AlertItem, Gender, TrainingHistory, InjuryHistory } from "@/lib/types";
 import AthleteDashboard from "@/components/AthleteDashboard";
+import AddAthleteForm from "@/components/AddAthleteForm";
 
-export const dynamic = "force-dynamic";
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const [history, setHistory] = useState<Reading[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function DashboardPage() {
-  const { athletes } = await getAthletes();
+  async function loadMyProfile(id: string) {
+    try {
+      const [{ athlete }, { history }, { alerts }] = await Promise.all([
+        getAthlete(id),
+        getAthleteHistory(id),
+        getAlerts({ athleteId: id, status: "active" }),
+      ]);
+      setAthlete(athlete);
+      setHistory(history);
+      setAlerts(alerts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memuat profil kamu");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  if (athletes.length === 0) {
+  useEffect(() => {
+    const id = getMyAthleteId();
+    if (id) {
+      loadMyProfile(id);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  async function handleCreateProfile(payload: {
+    name: string;
+    sport: string;
+    age: number;
+    gender: Gender;
+    heightCm: number;
+    weightKg: number;
+    trainingHistory: TrainingHistory;
+    injuryHistory: InjuryHistory;
+  }) {
+    const res = await createAthlete(payload);
+    setMyAthleteId(res.athlete.id);
+    setAthlete(res.athlete);
+    setHistory([]);
+    setAlerts([]);
+  }
+
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
-          <span className="text-2xl">🛡️</span>
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-ivory">Athlete Guardian</h1>
-          <p className="mt-1 text-sm text-muted">
-            Belum ada atlet yang terdaftar. Tambahkan profil atlet untuk mulai memantau kondisi
-            fisik secara real-time dari wearable device.
-          </p>
-        </div>
-        <Link
-          href="/athletes"
-          className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-ivory"
-        >
-          Tambah Atlet
-        </Link>
+      <div className="flex flex-col items-center justify-center gap-3 px-6 pt-24 text-center">
+        <p className="text-sm text-muted">Memuat…</p>
       </div>
     );
   }
 
-  const primary = [...athletes].sort((a, b) => {
-    const aTime = a.latestReading ? new Date(a.latestReading.timestamp).getTime() : 0;
-    const bTime = b.latestReading ? new Date(b.latestReading.timestamp).getTime() : 0;
-    return bTime - aTime;
-  })[0];
-
-  const { history } = await getAthleteHistory(primary.id);
-  const { alerts } = await getAlerts({ userId: primary.id, status: "active" });
+  // Belum ada profil sama sekali -- tampilkan onboarding, bukan roster kosong.
+  if (!athlete) {
+    return (
+      <div className="flex flex-col gap-4 px-5 pt-8">
+        <div className="flex flex-col items-center gap-3 pb-2 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
+            <span className="text-2xl">🛡️</span>
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-ivory">Athlete Guardian</h1>
+            <p className="mt-1 text-sm text-muted">
+              Buat profil kamu untuk mulai memantau kondisi fisik secara real-time
+              dari wearable device.
+            </p>
+          </div>
+        </div>
+        {error && <p className="text-center text-sm text-critical">{error}</p>}
+        <AddAthleteForm onSubmit={handleCreateProfile} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      {athletes.length > 1 && (
-        <div className="flex items-center justify-end px-5 pt-4">
-          <Link href="/athletes" className="text-xs font-medium text-brand">
-            Lihat semua atlet
-          </Link>
-        </div>
-      )}
-      <AthleteDashboard initialAthlete={primary} initialHistory={history} initialAlerts={alerts} />
+      <AthleteDashboard initialAthlete={athlete} initialHistory={history} initialAlerts={alerts} />
     </div>
   );
 }

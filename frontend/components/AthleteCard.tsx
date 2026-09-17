@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Athlete } from "@/lib/types";
-import { statusColor, statusLabel } from "@/lib/status";
-import RelativeTime from "./RelativeTime";
+import { statusColor, statusLabel, formatRelativeTime } from "@/lib/status";
 
 export default function AthleteCard({ athlete }: { athlete: Athlete }) {
   const reading = athlete.latestReading;
@@ -34,9 +33,7 @@ export default function AthleteCard({ athlete }: { athlete: Athlete }) {
             <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `${color}1F`, color }}>
               {statusLabel[status as keyof typeof statusLabel]}
             </span>
-            <span className="text-[11px] text-muted">
-              <RelativeTime timestamp={reading.timestamp} />
-            </span>
+            <span className="text-[11px] text-muted">{formatRelativeTime(reading.timestamp)}</span>
           </>
         ) : (
           <span className="rounded-full bg-hairline px-2 py-0.5 text-[11px] font-medium text-muted">

@@ -15,6 +15,7 @@ export const athletesRouter = Router();
 
 const VALID_GENDERS = ["male", "female"];
 const VALID_TRAINING_HISTORY = ["pemula", "rutin", "terlatih"];
+const VALID_INJURY_HISTORY = ["tidak_ada", "lutut", "pergelangan_kaki", "punggung", "lainnya"];
 
 athletesRouter.get("/", async (req, res, next) => {
   try {
@@ -27,7 +28,7 @@ athletesRouter.get("/", async (req, res, next) => {
 
 athletesRouter.post("/", async (req, res, next) => {
   try {
-    const { name, sport, age, gender, heightCm, weightKg, trainingHistory, restingHR, maxHR } =
+    const { name, sport, age, gender, heightCm, weightKg, trainingHistory, injuryHistory, restingHR, maxHR } =
       req.body || {};
 
     if (!name || !sport || !age || !gender || !heightCm || !weightKg || !trainingHistory) {
@@ -41,6 +42,11 @@ athletesRouter.post("/", async (req, res, next) => {
     if (!VALID_TRAINING_HISTORY.includes(trainingHistory)) {
       return res.status(400).json({ error: "trainingHistory harus pemula, rutin, atau terlatih" });
     }
+    if (injuryHistory !== undefined && !VALID_INJURY_HISTORY.includes(injuryHistory)) {
+      return res.status(400).json({
+        error: `injuryHistory harus salah satu dari: ${VALID_INJURY_HISTORY.join(", ")}`
+      });
+    }
 
     const athlete = await createAthlete({
       name,
@@ -50,6 +56,7 @@ athletesRouter.post("/", async (req, res, next) => {
       heightCm,
       weightKg,
       trainingHistory,
+      injuryHistory,
       restingHR,
       maxHR
     });

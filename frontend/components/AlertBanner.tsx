@@ -1,6 +1,5 @@
 import { AlertItem } from "@/lib/types";
-import { statusColor, statusLabel } from "@/lib/status";
-import RelativeTime from "./RelativeTime";
+import { statusColor, statusLabel, formatRelativeTime } from "@/lib/status";
 
 interface AlertBannerProps {
   alert: AlertItem;
@@ -32,9 +31,7 @@ export default function AlertBanner({ alert, onAcknowledge, showAthleteName }: A
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-muted">
-            <RelativeTime timestamp={alert.timestamp} />
-          </p>
+          <p className="mt-2 text-[11px] text-muted">{formatRelativeTime(alert.timestamp)}</p>
         </div>
         {onAcknowledge && !alert.acknowledged && (
           <button

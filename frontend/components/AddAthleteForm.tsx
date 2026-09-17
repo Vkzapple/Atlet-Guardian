@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Gender, TrainingHistory } from "@/lib/types";
+import { Gender, InjuryHistory, TrainingHistory } from "@/lib/types";
 
 interface AddAthleteFormProps {
   onSubmit: (payload: {
@@ -12,6 +12,7 @@ interface AddAthleteFormProps {
     heightCm: number;
     weightKg: number;
     trainingHistory: TrainingHistory;
+    injuryHistory: InjuryHistory;
   }) => Promise<void>;
 }
 
@@ -23,6 +24,7 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [trainingHistory, setTrainingHistory] = useState<TrainingHistory>("rutin");
+  const [injuryHistory, setInjuryHistory] = useState<InjuryHistory>("tidak_ada");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +44,8 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
         gender,
         heightCm: Number(heightCm),
         weightKg: Number(weightKg),
-        trainingHistory
+        trainingHistory,
+        injuryHistory
       });
       setName("");
       setSport("");
@@ -50,7 +53,7 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
       setHeightCm("");
       setWeightKg("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menambahkan atlet");
+      setError(err instanceof Error ? err.message : "Gagal menyimpan profil");
     } finally {
       setSubmitting(false);
     }
@@ -63,7 +66,7 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
       <div className="flex flex-col gap-1.5">
-        <label className={labelClass}>Nama atlet</label>
+        <label className={labelClass}>Nama kamu</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -137,13 +140,27 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
           <option value="terlatih">Terlatih</option>
         </select>
       </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Riwayat cedera</label>
+        <select
+          value={injuryHistory}
+          onChange={(e) => setInjuryHistory(e.target.value as InjuryHistory)}
+          className={inputClass}
+        >
+          <option value="tidak_ada">Tidak ada</option>
+          <option value="lutut">Lutut</option>
+          <option value="pergelangan_kaki">Pergelangan kaki</option>
+          <option value="punggung">Punggung</option>
+          <option value="lainnya">Lainnya</option>
+        </select>
+      </div>
       {error && <p className="text-xs text-critical">{error}</p>}
       <button
         type="submit"
         disabled={submitting}
         className="mt-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-ivory disabled:opacity-50"
       >
-        {submitting ? "Menyimpan…" : "Simpan Atlet"}
+        {submitting ? "Menyimpan…" : "Simpan Profil"}
       </button>
     </form>
   );

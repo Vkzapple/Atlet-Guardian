@@ -1,4 +1,4 @@
-import { AlertItem, Athlete, Gender, Reading, TrainingHistory } from "./types";
+import { AlertItem, Athlete, Gender, InjuryHistory, Reading, TrainingHistory } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -38,6 +38,7 @@ export function createAthlete(payload: {
   heightCm: number;
   weightKg: number;
   trainingHistory: TrainingHistory;
+  injuryHistory?: InjuryHistory;
   restingHR?: number;
   maxHR?: number;
 }) {
@@ -57,7 +58,7 @@ export function deleteAthlete(id: string) {
   return request<void>(`/api/athletes/${id}`, { method: "DELETE" });
 }
 
-export function getAlerts(params?: { userId?: string; status?: "active" | "acknowledged" }) {
+export function getAlerts(params?: { athleteId?: string; status?: "active" | "acknowledged" }) {
   const query = new URLSearchParams(params as Record<string, string>).toString();
   return request<{ alerts: AlertItem[] }>(`/api/alerts${query ? `?${query}` : ""}`);
 }

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import mqtt from "mqtt";
 import { predictFatigue } from "./ai/predictClient.js";
-import { getAthleteById, insertReading, insertAlert } from "./supabase.js";
+import { getAthleteById, getAthleteHistory, insertReading, insertAlert } from "./supabase.js";
 
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || "athlete-guardian";
@@ -66,14 +66,27 @@ export function connectMqtt() {
       }
 
       const timestamp = payload.timestamp || new Date().toISOString();
-      const evaluation = await predictFatigue({ athlete, reading: payload });
+
+      // Ambil histori fatigue_score (s.d. 28 sesi terakhir, kronologis lama->baru)
+      // buat dikirim ke AI service -- dipakai buat hitung ACWR injury risk.
+      // Kalau gagal ambil histori, tetap lanjut prediksi tanpa histori (fallback
+      // heuristik di AI service akan otomatis dipakai).
+      let recentFatigueScores = [];
+      try {
+        const history = await getAthleteHistory(athleteId, 28);
+        recentFatigueScores = history.map((r) => r.fatigueScore);
+      } catch (histErr) {
+        console.error(`Gagal ambil histori untuk ${athleteId}, lanjut tanpa ACWR:`, histErr.message);
+      }
+
+      const evaluation = await predictFatigue({ athlete, reading: payload, recentFatigueScores });
 
       const reading = await insertReading(athleteId, { ...payload, timestamp }, evaluation);
 
       let alert = null;
       if (evaluation.earlyWarning) {
         alert = await insertAlert({
-          userId: athleteId,
+          athleteId,
           athleteName: athlete.name,
           status: evaluation.conditionStatus,
           reasons: evaluation.warningReasons,

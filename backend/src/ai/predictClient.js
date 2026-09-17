@@ -28,9 +28,16 @@ function mapRiskLevelToStatus(riskLevel, fatigueScore) {
   return "optimal";
 }
 
-export async function predictFatigue({ athlete, reading }) {
+/**
+ * @param {Object} params
+ * @param {Object} params.athlete - profil atlet (dari getAthleteById)
+ * @param {Object} params.reading - data sensor sesi ini
+ * @param {number[]} [params.recentFatigueScores] - histori fatigue_score kronologis
+ *   (lama->baru), dari getAthleteHistory(athleteId, 28).map(r => r.fatigueScore).
+ *   Minimal 5 data supaya AI service pakai ACWR (lebih akurat) daripada fallback.
+ */
+export async function predictFatigue({ athlete, reading, recentFatigueScores = [] }) {
   const payload = {
-    user_id: athlete.id,
     age: athlete.age,
     gender: athlete.gender,
     height_cm: athlete.heightCm,
@@ -42,7 +49,14 @@ export async function predictFatigue({ athlete, reading }) {
     speed_decline_pct: reading.speedDeclinePct ?? 0,
     sleep_hours_last_night: reading.sleepHoursLastNight,
     rpe_self_report: reading.rpeSelfReport,
-    hr_rest: athlete.baseline.restingHR
+    hr_rest: athlete.baseline.restingHR,
+
+    // Field baru -- default aman kalau data belum ada di profil/schema.
+    // "sport" & "injuryHistory" dibaca dari athlete kalau kolomnya sudah
+    // ditambahkan ke tabel athletes; kalau belum, tetap jalan pakai default.
+    sport: athlete.sport || "lari",
+    injury_history: athlete.injuryHistory || "tidak_ada",
+    recent_fatigue_scores: recentFatigueScores
   };
 
   const controller = new AbortController();
@@ -88,6 +102,12 @@ export async function predictFatigue({ athlete, reading }) {
     conditionStatus,
     earlyWarning,
     warningReasons: earlyWarning ? [`Tingkat risiko: ${riskLevel}`, result.recommendation] : [],
-    recoveryEstimateMinutes: Math.round(fatigueScore * 1.1 + (conditionStatus === "critical" ? 15 : 0))
+    recoveryEstimateMinutes: Math.round(fatigueScore * 1.1 + (conditionStatus === "critical" ? 15 : 0)),
+
+    // ---- Field baru dari AI service ----
+    injuryRiskPercent: Number(result.injury_risk_percent),
+    injuryRiskMethod: result.injury_risk_method, // "acwr" (>=5 histori) atau "heuristic_awal"
+    nextSessionRecommendation: result.next_session_recommendation, // { target_hr_bpm, target_hr_zone, target_pace_range?, text }
+    paceZones: result.pace_zones // referensi pace tiap HR zone (1-5), kosong kalau sport != "lari"
   };
 }

@@ -7,7 +7,7 @@ export default async function AthleteDetailPage({ params }: { params: { id: stri
   const [{ athlete }, { history }, { alerts }] = await Promise.all([
     getAthlete(params.id),
     getAthleteHistory(params.id),
-    getAlerts({ userId: params.id, status: "active" })
+    getAlerts({ athleteId: params.id, status: "active" })
   ]);
 
   return <AthleteDashboard initialAthlete={athlete} initialHistory={history} initialAlerts={alerts} />;
