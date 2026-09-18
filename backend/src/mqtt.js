@@ -5,7 +5,7 @@ import { getAthleteById, getAthleteHistory, insertReading, insertAlert } from ".
 
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || "athlete-guardian";
-const READINGS_TOPIC = `${TOPIC_PREFIX}/+/readings`;
+const READINGS_TOPIC = `${TOPIC_PREFIX}/<ATHLETE_UUID>/readings`;
 
 function requiredFields(payload) {
   const required = ["hrCurrent", "breathingRate", "sleepHoursLastNight", "rpeSelfReport"];
