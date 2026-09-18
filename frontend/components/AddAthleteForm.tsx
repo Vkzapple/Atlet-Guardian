@@ -5,6 +5,8 @@ import { Gender, InjuryHistory, TrainingHistory } from "@/lib/types";
 
 interface AddAthleteFormProps {
   onSubmit: (payload: {
+    email: string;
+    password: string;
     name: string;
     sport: string;
     age: number;
@@ -14,9 +16,12 @@ interface AddAthleteFormProps {
     trainingHistory: TrainingHistory;
     injuryHistory: InjuryHistory;
   }) => Promise<void>;
+  onSwitchToLogin: () => void;
 }
 
-export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
+export default function AddAthleteForm({ onSubmit, onSwitchToLogin }: AddAthleteFormProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
   const [age, setAge] = useState("");
@@ -30,14 +35,20 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !sport.trim() || !age || !heightCm || !weightKg) {
+    if (!email.trim() || !password || !name.trim() || !sport.trim() || !age || !heightCm || !weightKg) {
       setError("Semua kolom wajib diisi");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password minimal 8 karakter");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       await onSubmit({
+        email: email.trim(),
+        password,
         name: name.trim(),
         sport: sport.trim(),
         age: Number(age),
@@ -47,11 +58,6 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
         trainingHistory,
         injuryHistory
       });
-      setName("");
-      setSport("");
-      setAge("");
-      setHeightCm("");
-      setWeightKg("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan profil");
     } finally {
@@ -65,6 +71,28 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Email</label>
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          autoComplete="email"
+          placeholder="kamu@email.com"
+          className={inputClass}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={labelClass}>Password</label>
+        <input
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          type="password"
+          autoComplete="new-password"
+          placeholder="Minimal 8 karakter"
+          className={inputClass}
+        />
+      </div>
       <div className="flex flex-col gap-1.5">
         <label className={labelClass}>Nama kamu</label>
         <input
@@ -160,7 +188,14 @@ export default function AddAthleteForm({ onSubmit }: AddAthleteFormProps) {
         disabled={submitting}
         className="mt-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-ivory disabled:opacity-50"
       >
-        {submitting ? "Menyimpan…" : "Simpan Profil"}
+        {submitting ? "Membuat akun…" : "Buat Akun & Profil"}
+      </button>
+      <button
+        type="button"
+        onClick={onSwitchToLogin}
+        className="text-center text-xs font-medium text-muted underline-offset-2 hover:underline"
+      >
+        Sudah punya akun? Masuk
       </button>
     </form>
   );

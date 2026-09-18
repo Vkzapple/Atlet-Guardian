@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { calibrateAthlete, deleteAthlete, getAthlete } from "@/lib/api";
 import { clearMyAthleteId, getMyAthleteId } from "@/lib/myAthlete";
+import { clearToken } from "@/lib/auth";
 import { Athlete } from "@/lib/types";
 
 const labelMap = {
@@ -70,11 +71,18 @@ export default function ProfilSayaPage() {
     try {
       await deleteAthlete(athlete.id);
       clearMyAthleteId();
+      clearToken();
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menghapus profil");
       setBusy(false);
     }
+  }
+
+  function handleLogout() {
+    clearMyAthleteId();
+    clearToken();
+    router.push("/");
   }
 
   if (loading) {
@@ -89,7 +97,7 @@ export default function ProfilSayaPage() {
     return (
       <div className="flex flex-col gap-3 px-5 pt-8 text-center">
         <p className="text-sm text-muted">
-          Kamu belum punya profil. Kembali ke Dasbor untuk membuat profil terlebih dahulu.
+          Kamu belum login. Kembali ke Dasbor untuk masuk atau membuat akun terlebih dahulu.
         </p>
       </div>
     );
@@ -138,6 +146,14 @@ export default function ProfilSayaPage() {
         className="mt-4 rounded-full border border-hairline py-2.5 text-sm font-semibold text-critical disabled:opacity-50"
       >
         Hapus Profil & Mulai Ulang
+      </button>
+
+      <button
+        onClick={handleLogout}
+        disabled={busy}
+        className="rounded-full border border-hairline py-2.5 text-sm font-semibold text-muted disabled:opacity-50"
+      >
+        Keluar
       </button>
     </div>
   );

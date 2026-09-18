@@ -1,11 +1,18 @@
 import { AlertItem, Athlete, Gender, InjuryHistory, Reading, TrainingHistory } from "./types";
+import { getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
+
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers || {})
+    },
     cache: "no-store"
   });
 
@@ -16,6 +23,35 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (response.status === 204) return undefined as T;
   return response.json();
+}
+
+export function login(payload: { email: string; password: string }) {
+  return request<{ token: string; athlete: Athlete }>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function register(payload: {
+  email: string;
+  password: string;
+  name: string;
+  sport: string;
+  age: number;
+  gender: Gender;
+  heightCm: number;
+  weightKg: number;
+  trainingHistory: TrainingHistory;
+  injuryHistory?: InjuryHistory;
+}) {
+  return request<{ token: string; athlete: Athlete }>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getMe() {
+  return request<{ athlete: Athlete }>("/api/auth/me");
 }
 
 export function getAthletes() {
