@@ -7,7 +7,7 @@ import { authRouter } from "./routes/auth.js";
 import { connectMqtt } from "./mqtt.js";
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 4000;
 
 app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(express.json());
@@ -31,6 +31,6 @@ app.use((err, req, res, next) => {
 
 connectMqtt();
 
-app.listen(port, () => {
-  console.log(`Athlete Guardian backend berjalan di http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Athlete Guardian backend berjalan di 0.0.0.0:${port}`);
 });
