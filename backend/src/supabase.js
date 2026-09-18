@@ -293,3 +293,58 @@ export async function acknowledgeAlert(id) {
 
   return mapAlert(row);
 }
+
+// ================== AUTH: tabel users ==================
+
+function mapUser(row) {
+  return {
+    id: row.id,
+    email: row.email,
+    athleteId: row.athlete_id,
+    createdAt: row.created_at
+    // password_hash SENGAJA tidak diikutkan supaya tidak pernah bocor ke response API
+  };
+}
+
+export async function getUserByEmail(email) {
+  const { data: row, error } = await supabase
+    .from("users")
+    .select("*")
+    .ilike("email", email) // case-insensitive
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return { ...mapUser(row), passwordHash: row.password_hash };
+}
+
+export async function getUserById(id) {
+  const { data: row, error } = await supabase.from("users").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return mapUser(row);
+}
+
+/**
+ * Membuat akun (users) yang terhubung ke satu profil atlet (athletes).
+ * Kalau pembuatan user gagal setelah atlet berhasil dibuat, atlet yang
+ * baru dibuat itu dihapus lagi supaya tidak ada profil "yatim" tanpa akun.
+ */
+export async function createUserAccount({ email, passwordHash, athleteId }) {
+  const { data: row, error } = await supabase
+    .from("users")
+    .insert({ email: email.toLowerCase(), password_hash: passwordHash, athlete_id: athleteId })
+    .select("*")
+    .single();
+
+  if (error) {
+    await deleteAthlete(athleteId).catch(() => {});
+    if (error.code === "23505") {
+      throw new Error("Email sudah terdaftar. Silakan login atau gunakan email lain.");
+    }
+    throw new Error(error.message);
+  }
+
+  return mapUser(row);
+}

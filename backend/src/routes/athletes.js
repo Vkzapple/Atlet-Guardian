@@ -10,6 +10,7 @@ import {
   updateAthleteBaseline
 } from "../supabase.js";
 import { calibrateFromReadings } from "../ai/baseline.js";
+import { requireAuth, requireOwnAthlete } from "../auth.js";
 
 export const athletesRouter = Router();
 
@@ -89,7 +90,7 @@ athletesRouter.get("/:id/history", async (req, res, next) => {
   }
 });
 
-athletesRouter.post("/:id/calibrate", async (req, res, next) => {
+athletesRouter.post("/:id/calibrate", requireAuth, requireOwnAthlete, async (req, res, next) => {
   try {
     const baseline = await getBaselineInput(req.params.id);
     if (!baseline) return res.status(404).json({ error: "Atlet tidak ditemukan" });
@@ -109,7 +110,7 @@ athletesRouter.post("/:id/calibrate", async (req, res, next) => {
   }
 });
 
-athletesRouter.delete("/:id", async (req, res, next) => {
+athletesRouter.delete("/:id", requireAuth, requireOwnAthlete, async (req, res, next) => {
   try {
     const athlete = await getAthleteById(req.params.id);
     if (!athlete) return res.status(404).json({ error: "Atlet tidak ditemukan" });
