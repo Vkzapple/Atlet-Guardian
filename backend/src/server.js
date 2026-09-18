@@ -7,9 +7,9 @@ import { authRouter } from "./routes/auth.js";
 import { connectMqtt } from "./mqtt.js";
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT;
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" }));
+app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
