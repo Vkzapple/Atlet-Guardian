@@ -2,11 +2,21 @@
 
 import { useEffect, useState } from "react";
 
+const THEME_COLOR = { dark: "#0A0F1A", light: "#F6F7FA" };
+
+function syncThemeColor(isLight: boolean) {
+  document
+    .querySelectorAll('meta[name="theme-color"]')
+    .forEach((m) => m.setAttribute("content", isLight ? THEME_COLOR.light : THEME_COLOR.dark));
+}
+
 export default function ThemeToggle() {
   const [isLight, setIsLight] = useState(false);
 
   useEffect(() => {
-    setIsLight(document.documentElement.classList.contains("light"));
+    const light = document.documentElement.classList.contains("light");
+    setIsLight(light);
+    syncThemeColor(light);
   }, []);
 
   function toggleTheme() {
@@ -14,13 +24,14 @@ export default function ThemeToggle() {
     setIsLight(next);
     document.documentElement.classList.toggle("light", next);
     localStorage.setItem("athlete-guardian-theme", next ? "light" : "dark");
+    syncThemeColor(next);
   }
 
   return (
     <button
       onClick={toggleTheme}
       aria-label={isLight ? "Aktifkan mode malam" : "Aktifkan mode terang"}
-      className="fixed right-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-surface/90 backdrop-blur active:scale-95"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-surface/90 transition-transform active:scale-95"
     >
       {isLight ? <MoonIcon /> : <SunIcon />}
     </button>

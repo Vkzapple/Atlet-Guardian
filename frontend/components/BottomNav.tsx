@@ -22,8 +22,12 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors"
+              aria-current={active ? "page" : undefined}
+              className="relative flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors active:bg-surface-raised"
             >
+              {active && (
+                <span className="absolute -top-2 h-0.5 w-8 rounded-full bg-brand" aria-hidden="true" />
+              )}
               <Icon active={active} />
               <span className={`text-[11px] font-medium ${active ? "text-ivory" : "text-muted"}`}>
                 {tab.label}
