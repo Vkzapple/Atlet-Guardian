@@ -295,6 +295,44 @@ export async function acknowledgeAlert(id) {
 }
 
 // ================== AUTH: tabel users ==================
+function mapSelfReport(row) {
+  return {
+    id: row.id,
+    athleteId: row.user_id,
+    sleepHoursLastNight: Number(row.sleep_hours_last_night),
+    rpeSelfReport: Number(row.rpe_self_report),
+    reportedAt: row.reported_at
+  };
+}
+
+export async function getLatestSelfReport(athleteId) {
+  const { data: row, error } = await supabase
+    .from("self_reports")
+    .select("*")
+    .eq("user_id", athleteId)
+    .order("reported_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return mapSelfReport(row);
+}
+
+export async function upsertSelfReport(athleteId, { sleepHoursLastNight, rpeSelfReport }) {
+  const { data: row, error } = await supabase
+    .from("self_reports")
+    .insert({
+      user_id: athleteId,
+      sleep_hours_last_night: sleepHoursLastNight,
+      rpe_self_report: rpeSelfReport
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return mapSelfReport(row);
+}
 
 function mapUser(row) {
   return {

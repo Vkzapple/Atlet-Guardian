@@ -1,20 +1,53 @@
 import "dotenv/config";
 import mqtt from "mqtt";
 import { predictFatigue } from "./ai/predictClient.js";
-import { getAthleteById, getAthleteHistory, insertReading, insertAlert } from "./supabase.js";
+import {
+  getAthleteById,
+  getAthleteHistory,
+  getLatestSelfReport,
+  insertReading,
+  insertAlert
+} from "./supabase.js";
 
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || "athlete-guardian";
 const READINGS_TOPIC = `${TOPIC_PREFIX}/1ca40e49-125d-48c4-b04b-2614bcebaa0f/readings`;
 
-function requiredFields(payload) {
-  const required = ["hrCurrent", "breathingRate", "sleepHoursLastNight", "rpeSelfReport"];
-  for (const field of required) {
-    if (payload[field] === undefined || payload[field] === null || typeof payload[field] !== "number") {
-      return `Field '${field}' wajib ada pada payload MQTT dan bertipe number`;
-    }
+// Dipakai HANYA kalau atlet belum pernah isi self-report sama sekali,
+// supaya pipeline AI tetap jalan alih-alih data di-reject total.
+const DEFAULT_SLEEP_HOURS = 7;
+const DEFAULT_RPE = 5;
+
+// hrCurrent satu-satunya field yang benar-benar WAJIB dari hardware.
+// breathingRate masih opsional (firmware belum punya algoritmanya).
+function validateSensorFields(payload) {
+  if (typeof payload.hrCurrent !== "number") {
+    return "Field 'hrCurrent' wajib ada pada payload MQTT dan bertipe number";
   }
   return null;
+}
+
+// Kalau device/app belum kirim sleep & rpe, ambil dari self-report
+// terakhir yang atlet isi manual. Kalau belum pernah isi sama sekali,
+// fallback ke default supaya AI service tetap bisa jalan.
+async function enrichWithSelfReport(athleteId, payload) {
+  const hasSleep = typeof payload.sleepHoursLastNight === "number";
+  const hasRpe = typeof payload.rpeSelfReport === "number";
+  if (hasSleep && hasRpe) return payload;
+
+  let selfReport = null;
+  try {
+    selfReport = await getLatestSelfReport(athleteId);
+  } catch (err) {
+    console.error(`Gagal ambil self-report untuk ${athleteId}, pakai default:`, err.message);
+  }
+
+  return {
+    ...payload,
+    breathingRate: typeof payload.breathingRate === "number" ? payload.breathingRate : null,
+    sleepHoursLastNight: hasSleep ? payload.sleepHoursLastNight : (selfReport?.sleepHoursLastNight ?? DEFAULT_SLEEP_HOURS),
+    rpeSelfReport: hasRpe ? payload.rpeSelfReport : (selfReport?.rpeSelfReport ?? DEFAULT_RPE)
+  };
 }
 
 export function connectMqtt() {
@@ -33,13 +66,8 @@ export function connectMqtt() {
     });
   });
 
-  client.on("reconnect", () => {
-    console.log("Mencoba menyambung ulang ke broker EMQX...");
-  });
-
-  client.on("error", (err) => {
-    console.error("Kesalahan koneksi MQTT:", err.message);
-  });
+  client.on("reconnect", () => console.log("Mencoba menyambung ulang ke broker EMQX..."));
+  client.on("error", (err) => console.error("Kesalahan koneksi MQTT:", err.message));
 
   client.on("message", async (topic, payloadBuffer) => {
     const athleteId = topic.split("/")[1];
@@ -52,7 +80,7 @@ export function connectMqtt() {
       return;
     }
 
-    const validationError = requiredFields(payload);
+    const validationError = validateSensorFields(payload);
     if (validationError) {
       console.error(`Payload ditolak dari ${topic}: ${validationError}`);
       return;
@@ -66,11 +94,8 @@ export function connectMqtt() {
       }
 
       const timestamp = payload.timestamp || new Date().toISOString();
+      const enrichedPayload = await enrichWithSelfReport(athleteId, payload);
 
-      // Ambil histori fatigue_score (s.d. 28 sesi terakhir, kronologis lama->baru)
-      // buat dikirim ke AI service -- dipakai buat hitung ACWR injury risk.
-      // Kalau gagal ambil histori, tetap lanjut prediksi tanpa histori (fallback
-      // heuristik di AI service akan otomatis dipakai).
       let recentFatigueScores = [];
       try {
         const history = await getAthleteHistory(athleteId, 28);
@@ -79,9 +104,8 @@ export function connectMqtt() {
         console.error(`Gagal ambil histori untuk ${athleteId}, lanjut tanpa ACWR:`, histErr.message);
       }
 
-      const evaluation = await predictFatigue({ athlete, reading: payload, recentFatigueScores });
-
-      const reading = await insertReading(athleteId, { ...payload, timestamp }, evaluation);
+      const evaluation = await predictFatigue({ athlete, reading: enrichedPayload, recentFatigueScores });
+      const reading = await insertReading(athleteId, { ...enrichedPayload, timestamp }, evaluation);
 
       let alert = null;
       if (evaluation.earlyWarning) {
@@ -95,9 +119,7 @@ export function connectMqtt() {
       }
 
       client.publish(`${TOPIC_PREFIX}/${athleteId}/status`, JSON.stringify(reading));
-      if (alert) {
-        client.publish(`${TOPIC_PREFIX}/${athleteId}/alerts`, JSON.stringify(alert));
-      }
+      if (alert) client.publish(`${TOPIC_PREFIX}/${athleteId}/alerts`, JSON.stringify(alert));
     } catch (err) {
       console.error(`Gagal memproses pembacaan untuk atlet ${athleteId}:`, err.message);
     }

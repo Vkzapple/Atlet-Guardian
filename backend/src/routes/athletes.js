@@ -7,7 +7,9 @@ import {
   getAthleteHistory,
   getHrHistoryForCalibration,
   getBaselineInput,
-  updateAthleteBaseline
+  updateAthleteBaseline,
+  getLatestSelfReport,
+  upsertSelfReport
 } from "../supabase.js";
 import { calibrateFromReadings } from "../ai/baseline.js";
 import { requireAuth, requireOwnAthlete } from "../auth.js";
@@ -105,6 +107,45 @@ athletesRouter.post("/:id/calibrate", requireAuth, requireOwnAthlete, async (req
     const newBaseline = calibrateFromReadings(hrReadings, baseline);
     const athlete = await updateAthleteBaseline(req.params.id, newBaseline);
     res.json({ athlete });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ================== SELF-REPORT (sleep & RPE manual) ==================
+// Field ini gak dikirim oleh hardware (sleep butuh mode sleep-tracking yang
+// belum diimplementasi firmware, RPE memang harus self-report dari atlet).
+// Diisi manual lewat dashboard/app, lalu di-merge oleh mqtt.js saat reading
+// sensor masuk (lihat enrichWithSelfReport di mqtt.js).
+
+athletesRouter.get("/:id/self-report/latest", requireAuth, requireOwnAthlete, async (req, res, next) => {
+  try {
+    const athlete = await getAthleteById(req.params.id);
+    if (!athlete) return res.status(404).json({ error: "Atlet tidak ditemukan" });
+
+    const selfReport = await getLatestSelfReport(req.params.id);
+    res.json({ selfReport });
+  } catch (err) {
+    next(err);
+  }
+});
+
+athletesRouter.post("/:id/self-report", requireAuth, requireOwnAthlete, async (req, res, next) => {
+  try {
+    const athlete = await getAthleteById(req.params.id);
+    if (!athlete) return res.status(404).json({ error: "Atlet tidak ditemukan" });
+
+    const { sleepHoursLastNight, rpeSelfReport } = req.body || {};
+
+    if (typeof sleepHoursLastNight !== "number" || sleepHoursLastNight < 0 || sleepHoursLastNight > 24) {
+      return res.status(400).json({ error: "sleepHoursLastNight wajib angka antara 0-24" });
+    }
+    if (typeof rpeSelfReport !== "number" || rpeSelfReport < 1 || rpeSelfReport > 10) {
+      return res.status(400).json({ error: "rpeSelfReport wajib angka antara 1-10 (skala RPE)" });
+    }
+
+    const selfReport = await upsertSelfReport(req.params.id, { sleepHoursLastNight, rpeSelfReport });
+    res.status(201).json({ selfReport });
   } catch (err) {
     next(err);
   }
