@@ -15,7 +15,8 @@ const config: Config = {
         caution: "rgb(var(--color-caution) / <alpha-value>)",
         warning: "rgb(var(--color-warning) / <alpha-value>)",
         critical: "rgb(var(--color-critical) / <alpha-value>)",
-        brand: "rgb(var(--color-brand) / <alpha-value>)"
+        brand: "rgb(var(--color-brand) / <alpha-value>)",
+        pulse: "rgb(var(--color-pulse) / <alpha-value>)"
       },
       fontFamily: {
         display: ["var(--font-manrope)"],

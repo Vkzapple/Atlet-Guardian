@@ -122,30 +122,33 @@ export default function AthleteDashboard({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <VitalCard
+            label="Detak Jantung"
+            value={reading.hrCurrent.toString()}
+            unit="bpm"
+            trend={trends.hr}
+            color="#FF4D6D"
+            featured
+            live
+          />
+
+          <div className="grid grid-cols-3 gap-2.5">
             <VitalCard
-              label="Detak Jantung"
-              value={reading.hrCurrent.toString()}
-              unit="bpm"
-              trend={trends.hr}
-              color={statusColor.warning}
-            />
-            <VitalCard
-              label="Laju Napas"
+              label="Napas"
               value={reading.breathingRate.toString()}
               unit="npm"
               trend={trends.breathing}
               color={statusColor.optimal}
             />
             <VitalCard
-              label="Tidur Semalam"
+              label="Tidur"
               value={reading.sleepHoursLastNight.toString()}
               unit="jam"
               trend={trends.sleep}
               color={statusColor.caution}
             />
             <VitalCard
-              label="RPE Self-Report"
+              label="RPE"
               value={reading.rpeSelfReport.toString()}
               unit="/10"
               trend={trends.rpe}
