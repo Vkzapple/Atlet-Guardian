@@ -18,6 +18,13 @@ const READINGS_TOPIC = `${TOPIC_PREFIX}/+/readings`;
 const DEFAULT_SLEEP_HOURS = 7;
 const DEFAULT_RPE = 5;
 
+// Firmware saat ini BELUM punya algoritma breathing rate, jadi field ini
+// selalu absen dari payload hardware. Sebelumnya di-fallback ke `null`,
+// padahal AI service (FastAPI) mewajibkan number valid untuk breathing_rate
+// -> setiap reading selalu ditolak 422 walau hr_current-nya valid.
+// Default ini adalah nilai laju napas istirahat rata-rata orang dewasa (napas/menit).
+const DEFAULT_BREATHING_RATE = 16;
+
 // hrCurrent satu-satunya field yang benar-benar WAJIB dari hardware.
 // breathingRate masih opsional (firmware belum punya algoritmanya).
 function validateSensorFields(payload) {
@@ -33,7 +40,9 @@ function validateSensorFields(payload) {
 async function enrichWithSelfReport(athleteId, payload) {
   const hasSleep = typeof payload.sleepHoursLastNight === "number";
   const hasRpe = typeof payload.rpeSelfReport === "number";
-  if (hasSleep && hasRpe) return payload;
+  const hasBreathingRate = typeof payload.breathingRate === "number";
+
+  if (hasSleep && hasRpe && hasBreathingRate) return payload;
 
   let selfReport = null;
   try {
@@ -44,14 +53,16 @@ async function enrichWithSelfReport(athleteId, payload) {
 
   return {
     ...payload,
-    breathingRate: typeof payload.breathingRate === "number" ? payload.breathingRate : null,
+    // FIX: dulu fallback-nya `null`, sekarang default number supaya lolos
+    // validasi AI service (breathing_rate wajib number, bukan null).
+    breathingRate: hasBreathingRate ? payload.breathingRate : DEFAULT_BREATHING_RATE,
     sleepHoursLastNight: hasSleep ? payload.sleepHoursLastNight : (selfReport?.sleepHoursLastNight ?? DEFAULT_SLEEP_HOURS),
     rpeSelfReport: hasRpe ? payload.rpeSelfReport : (selfReport?.rpeSelfReport ?? DEFAULT_RPE)
   };
 }
 
 export function connectMqtt() {
-  console.log(">>> MQTT.JS VERSION: WILDCARD-FIX-v2 <<<");
+  console.log(">>> MQTT.JS VERSION: WILDCARD-FIX-v2 + BREATHING-RATE-FIX-v1 <<<");
   const client = mqtt.connect(MQTT_URL, {
     username: process.env.MQTT_USERNAME || undefined,
     password: process.env.MQTT_PASSWORD || undefined,
@@ -85,6 +96,13 @@ export function connectMqtt() {
     if (validationError) {
       console.error(`Payload ditolak dari ${topic}: ${validationError}`);
       return;
+    }
+
+    // Catatan: kalau finger_detected false, firmware mengirim hrCurrent = 0.
+    // AI service mewajibkan hr_current >= 30, jadi reading ini akan ditolak
+    // di predictFatigue() (bukan bug -- memang belum ada jari di sensor).
+    if (payload.hrCurrent === 0) {
+      console.warn(`hrCurrent = 0 dari ${topic} (kemungkinan belum ada jari di sensor), lanjut kirim ke AI service...`);
     }
 
     try {
