@@ -51,6 +51,7 @@ async function enrichWithSelfReport(athleteId, payload) {
 }
 
 export function connectMqtt() {
+  console.log(">>> MQTT.JS VERSION: WILDCARD-FIX-v2 <<<");
   const client = mqtt.connect(MQTT_URL, {
     username: process.env.MQTT_USERNAME || undefined,
     password: process.env.MQTT_PASSWORD || undefined,
