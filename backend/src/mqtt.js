@@ -11,7 +11,7 @@ import {
 
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || "athlete-guardian";
-const READINGS_TOPIC = `${TOPIC_PREFIX}/1ca40e49-125d-48c4-b04b-2614bcebaa0f/readings`;
+const READINGS_TOPIC = `${TOPIC_PREFIX}/+/readings`;
 
 // Dipakai HANYA kalau atlet belum pernah isi self-report sama sekali,
 // supaya pipeline AI tetap jalan alih-alih data di-reject total.
