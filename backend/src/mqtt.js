@@ -13,20 +13,11 @@ const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || "athlete-guardian";
 const READINGS_TOPIC = `${TOPIC_PREFIX}/+/readings`;
 
-// Dipakai HANYA kalau atlet belum pernah isi self-report sama sekali,
-// supaya pipeline AI tetap jalan alih-alih data di-reject total.
 const DEFAULT_SLEEP_HOURS = 7;
 const DEFAULT_RPE = 5;
 
-// Firmware saat ini BELUM punya algoritma breathing rate, jadi field ini
-// selalu absen dari payload hardware. Sebelumnya di-fallback ke `null`,
-// padahal AI service (FastAPI) mewajibkan number valid untuk breathing_rate
-// -> setiap reading selalu ditolak 422 walau hr_current-nya valid.
-// Default ini adalah nilai laju napas istirahat rata-rata orang dewasa (napas/menit).
 const DEFAULT_BREATHING_RATE = 16;
 
-// hrCurrent satu-satunya field yang benar-benar WAJIB dari hardware.
-// breathingRate masih opsional (firmware belum punya algoritmanya).
 function validateSensorFields(payload) {
   if (typeof payload.hrCurrent !== "number") {
     return "Field 'hrCurrent' wajib ada pada payload MQTT dan bertipe number";
@@ -34,9 +25,6 @@ function validateSensorFields(payload) {
   return null;
 }
 
-// Kalau device/app belum kirim sleep & rpe, ambil dari self-report
-// terakhir yang atlet isi manual. Kalau belum pernah isi sama sekali,
-// fallback ke default supaya AI service tetap bisa jalan.
 async function enrichWithSelfReport(athleteId, payload) {
   const hasSleep = typeof payload.sleepHoursLastNight === "number";
   const hasRpe = typeof payload.rpeSelfReport === "number";
@@ -53,8 +41,6 @@ async function enrichWithSelfReport(athleteId, payload) {
 
   return {
     ...payload,
-    // FIX: dulu fallback-nya `null`, sekarang default number supaya lolos
-    // validasi AI service (breathing_rate wajib number, bukan null).
     breathingRate: hasBreathingRate ? payload.breathingRate : DEFAULT_BREATHING_RATE,
     sleepHoursLastNight: hasSleep ? payload.sleepHoursLastNight : (selfReport?.sleepHoursLastNight ?? DEFAULT_SLEEP_HOURS),
     rpeSelfReport: hasRpe ? payload.rpeSelfReport : (selfReport?.rpeSelfReport ?? DEFAULT_RPE)
@@ -98,11 +84,10 @@ export function connectMqtt() {
       return;
     }
 
-    // Catatan: kalau finger_detected false, firmware mengirim hrCurrent = 0.
-    // AI service mewajibkan hr_current >= 30, jadi reading ini akan ditolak
-    // di predictFatigue() (bukan bug -- memang belum ada jari di sensor).
-    if (payload.hrCurrent === 0) {
-      console.warn(`hrCurrent = 0 dari ${topic} (kemungkinan belum ada jari di sensor), lanjut kirim ke AI service...`);
+    const MIN_VALID_HR = 30;
+    if (payload.hrCurrent < MIN_VALID_HR) {
+      console.warn(`Reading dari ${topic} dilewati: hrCurrent=${payload.hrCurrent} (< ${MIN_VALID_HR}, kemungkinan belum ada jari di sensor)`);
+      return;
     }
 
     try {
