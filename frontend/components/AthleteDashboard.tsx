@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { calibrateAthlete, acknowledgeAlert, getAlerts, getAthlete } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
 import { Athlete, AlertItem, Reading } from "@/lib/types";
@@ -12,6 +13,8 @@ import AlertBanner from "./AlertBanner";
 import InjuryRiskCard from "./InjuryRiskCard";
 import PaceZonesCard from "./PaceZonesCard";
 import AthleteHero from "./AthleteHero";
+import QuickActions from "./QuickActions";
+import SessionTracker from "./SessionTracker";
 
 interface AthleteDashboardProps {
   initialAthlete: Athlete;
@@ -26,6 +29,7 @@ export default function AthleteDashboard({
   initialHistory,
   initialAlerts
 }: AthleteDashboardProps) {
+  const router = useRouter();
   const [athlete, setAthlete] = useState(initialAthlete);
   const [history, setHistory] = useState(initialHistory);
   const [activeAlerts, setActiveAlerts] = useState<AlertItem[]>(initialAlerts);
@@ -90,6 +94,69 @@ export default function AthleteDashboard({
         syncLabel={lastSynced ? `Sinkron ${formatRelativeTime(lastSynced.toISOString())}` : "Menyinkronkan…"}
         photoUrl={athlete.photoUrl ?? undefined}
       />
+
+      <QuickActions
+        actions={[
+          {
+            label: "Kalibrasi",
+            onClick: handleCalibrate,
+            disabled: calibrating,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 4v3m0 10v3m8-8h-3M7 12H4m12.6-5.6l-2.1 2.1M9.5 14.5l-2.1 2.1m9.2 0l-2.1-2.1M9.5 9.5L7.4 7.4"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+              </svg>
+            )
+          },
+          {
+            label: "Riwayat",
+            onClick: () => router.push("/profil"),
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 12a8 8 0 1 1 2.7 6M4 12V6m0 6h5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )
+          },
+          {
+            label: "Laporan",
+            onClick: () => router.push(`/athletes/${athlete.id}/report`),
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 3h7l5 5v13H7V3z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+                <path d="M14 3v5h5M10 13h4M10 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            )
+          },
+          {
+            label: "Profil",
+            onClick: () => router.push("/profil"),
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            )
+          }
+        ]}
+      />
+
+      <SessionTracker athleteId={athlete.id} history={history} />
 
       {!reading ? (
         <div className="rounded-2xl border border-dashed border-hairline bg-surface p-8 text-center">

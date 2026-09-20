@@ -8,6 +8,7 @@ import { Athlete, Reading, AlertItem, Gender, TrainingHistory, InjuryHistory } f
 import AthleteDashboard from "@/components/AthleteDashboard";
 import AddAthleteForm from "@/components/AddAthleteForm";
 import LoginForm from "@/components/LoginForm";
+import Logo from "@/components/Logo";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -97,19 +98,23 @@ export default function DashboardPage() {
   if (!athlete) {
     return (
       <div className="flex flex-col gap-4 px-5 pt-8">
-        <div className="flex flex-col items-center gap-3 pb-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
-            <span className="text-2xl">🛡️</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-ivory">Athlete Guardian</h1>
-            <p className="mt-1 text-sm text-muted">
-              {authMode === "login"
-                ? "Masuk untuk memantau kondisi fisik kamu secara real-time."
-                : "Buat akun untuk mulai memantau kondisi fisik secara real-time dari wearable device."}
-            </p>
-          </div>
-        </div>
+  import Logo from "@/components/Logo";
+
+// ...
+
+<div className="flex flex-col items-center gap-3 pb-2 text-center">
+  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
+    <Logo size={40} />
+  </div>
+  <div>
+    <h1 className="text-lg font-bold text-ivory">Athlete Guardian</h1>
+    <p className="mt-1 text-sm text-muted">
+      {authMode === "login"
+        ? "Masuk untuk memantau kondisi fisik kamu secara real-time."
+        : "Buat akun untuk mulai memantau kondisi fisik secara real-time dari wearable device."}
+    </p>
+  </div>
+</div>
         {error && <p className="text-center text-sm text-critical">{error}</p>}
         {authMode === "login" ? (
           <LoginForm onSubmit={handleLogin} onSwitchToRegister={() => setAuthMode("register")} />

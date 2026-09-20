@@ -7,6 +7,7 @@ import { clearMyAthleteId, getMyAthleteId } from "@/lib/myAthlete";
 import { clearToken } from "@/lib/auth";
 import { Athlete } from "@/lib/types";
 import Logo from "@/components/Logo";
+import HistorySection from "@/components/HistorySection";
 
 const labelMap = {
   gender: { male: "Laki-laki", female: "Perempuan" },
@@ -215,6 +216,11 @@ export default function ProfilSayaPage() {
 
       {error && <p className="text-sm text-critical">{error}</p>}
       {message && <p className="text-sm text-optimal">{message}</p>}
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-ivory">Riwayat</p>
+        <HistorySection athleteId={athlete.id} />
+      </div>
 
       <button
         onClick={handleCalibrate}

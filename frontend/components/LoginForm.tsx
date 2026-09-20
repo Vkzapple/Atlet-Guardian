@@ -35,9 +35,6 @@ export default function LoginForm({ onSubmit, onSwitchToRegister }: LoginFormPro
 
   return (
     <div className="flex flex-col items-center gap-6 px-5 pt-10">
-      <p className="text-center text-sm text-muted">
-        Masuk untuk memantau kondisi fisik kamu secara real-time.
-      </p>
 
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
         <div className="flex flex-col gap-1.5">
