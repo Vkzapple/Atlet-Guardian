@@ -94,6 +94,38 @@ export function deleteAthlete(id: string) {
   return request<void>(`/api/athletes/${id}`, { method: "DELETE" });
 }
 
+// Upload foto pakai FormData, jadi TIDAK lewat request() -- helper itu selalu
+// set Content-Type: application/json, yang akan merusak multipart upload
+// (browser wajib set Content-Type multipart/form-data + boundary sendiri).
+export async function uploadAthletePhoto(id: string, file: File) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("photo", file);
+
+  const response = await fetch(`${API_URL}/api/athletes/${id}/photo`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      // sengaja TIDAK set Content-Type di sini
+    },
+    body: formData,
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: "Gagal upload foto" }));
+    throw new Error(body.error || "Gagal upload foto");
+  }
+
+  return response.json() as Promise<{ athlete: Athlete }>;
+}
+
+export function removeAthletePhoto(id: string) {
+  return request<{ athlete: Athlete }>(`/api/athletes/${id}/photo`, {
+    method: "DELETE"
+  });
+}
+
 export function getAlerts(params?: { athleteId?: string; status?: "active" | "acknowledged" }) {
   const query = new URLSearchParams(params as Record<string, string>).toString();
   return request<{ alerts: AlertItem[] }>(`/api/alerts${query ? `?${query}` : ""}`);

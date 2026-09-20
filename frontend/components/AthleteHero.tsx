@@ -15,10 +15,7 @@ export default function AthleteHero({ name, sport, syncLabel, photoUrl }: Athlet
         <img src={photoUrl} alt={name} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(196,255,61,0.18),transparent_55%),linear-gradient(160deg,rgb(24,35,56),rgb(10,15,26))]">
-          <svg width="72" height="72" viewBox="0 0 24 24" fill="none" className="text-hairline">
-            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <img src="/logo.png" alt="" className="h-16 w-16 object-contain opacity-70" />
         </div>
       )}
 

@@ -32,6 +32,7 @@ function mapAthlete(row, latestReadingRow) {
       sampleSize: row.sample_size
     },
     createdAt: row.created_at,
+    photoUrl: row.photo_url || null,
     latestReading: latestReadingRow ? mapReading(latestReadingRow) : null
   };
 }
@@ -153,6 +154,49 @@ export async function createAthlete({
 export async function deleteAthlete(id) {
   const { error } = await supabase.from("athletes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// ================== FOTO PROFIL (Supabase Storage) ==================
+const PHOTO_BUCKET = "athlete-photos";
+
+export async function uploadAthletePhoto(athleteId, file) {
+  const ext = (file.originalname.split(".").pop() || "jpg").toLowerCase();
+  const path = `${athleteId}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: true // timpa foto lama kalau ada, supaya path/nama file tetap konsisten
+    });
+  if (uploadError) throw new Error(`Gagal upload foto: ${uploadError.message}`);
+
+  const { data: publicUrlData } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+  // Tambahkan query param cache-bust supaya browser tidak menampilkan foto lama
+  // dari cache setelah upsert/ganti foto.
+  const photoUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
+
+  const { data: row, error } = await supabase
+    .from("athletes")
+    .update({ photo_url: photoUrl })
+    .eq("id", athleteId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return mapAthlete(row, null);
+}
+
+export async function removeAthletePhoto(athleteId) {
+  const { data: row, error } = await supabase
+    .from("athletes")
+    .update({ photo_url: null })
+    .eq("id", athleteId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return mapAthlete(row, null);
 }
 
 export async function getAthleteHistory(id, limit = 60) {

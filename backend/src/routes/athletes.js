@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   listAthletes,
   getAthleteById,
@@ -9,7 +10,9 @@ import {
   getBaselineInput,
   updateAthleteBaseline,
   getLatestSelfReport,
-  upsertSelfReport
+  upsertSelfReport,
+  uploadAthletePhoto,
+  removeAthletePhoto
 } from "../supabase.js";
 import { calibrateFromReadings } from "../ai/baseline.js";
 import { requireAuth, requireOwnAthlete } from "../auth.js";
@@ -19,6 +22,19 @@ export const athletesRouter = Router();
 const VALID_GENDERS = ["male", "female"];
 const VALID_TRAINING_HISTORY = ["pemula", "rutin", "terlatih"];
 const VALID_INJURY_HISTORY = ["tidak_ada", "lutut", "pergelangan_kaki", "punggung", "lainnya"];
+
+// Foto disimpan sementara di memory (bukan disk) lalu langsung diteruskan
+// ke Supabase Storage. Batas 3MB, hanya izinkan tipe image/*.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("File harus berupa gambar"));
+    }
+    cb(null, true);
+  }
+});
 
 athletesRouter.get("/", async (req, res, next) => {
   try {
@@ -107,6 +123,42 @@ athletesRouter.post("/:id/calibrate", requireAuth, requireOwnAthlete, async (req
     const newBaseline = calibrateFromReadings(hrReadings, baseline);
     const athlete = await updateAthleteBaseline(req.params.id, newBaseline);
     res.json({ athlete });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ================== FOTO PROFIL ==================
+// Upload disimpan di Supabase Storage bucket "athlete-photos" (harus dibuat
+// manual dan di-set PUBLIC lewat Supabase Dashboard -> Storage). URL publik
+// hasil upload disimpan di kolom athletes.photo_url.
+
+athletesRouter.post(
+  "/:id/photo",
+  requireAuth,
+  requireOwnAthlete,
+  upload.single("photo"),
+  async (req, res, next) => {
+    try {
+      const athlete = await getAthleteById(req.params.id);
+      if (!athlete) return res.status(404).json({ error: "Atlet tidak ditemukan" });
+      if (!req.file) return res.status(400).json({ error: "File foto ('photo') wajib disertakan" });
+
+      const updated = await uploadAthletePhoto(req.params.id, req.file);
+      res.json({ athlete: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+athletesRouter.delete("/:id/photo", requireAuth, requireOwnAthlete, async (req, res, next) => {
+  try {
+    const athlete = await getAthleteById(req.params.id);
+    if (!athlete) return res.status(404).json({ error: "Atlet tidak ditemukan" });
+
+    const updated = await removeAthletePhoto(req.params.id);
+    res.json({ athlete: updated });
   } catch (err) {
     next(err);
   }

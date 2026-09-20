@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { calibrateAthlete, deleteAthlete, getAthlete } from "@/lib/api";
+import { calibrateAthlete, deleteAthlete, getAthlete, uploadAthletePhoto, removeAthletePhoto } from "@/lib/api";
 import { clearMyAthleteId, getMyAthleteId } from "@/lib/myAthlete";
 import { clearToken } from "@/lib/auth";
 import { Athlete } from "@/lib/types";
+import Logo from "@/components/Logo";
 
 const labelMap = {
   gender: { male: "Laki-laki", female: "Perempuan" },
@@ -17,8 +18,10 @@ export default function ProfilSayaPage() {
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
     const id = getMyAthleteId();
@@ -39,6 +42,45 @@ export default function ProfilSayaPage() {
   useEffect(() => {
     refresh();
   }, []);
+
+  function handlePhotoPick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !athlete) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      setError("Ukuran foto maksimal 3MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const res = await uploadAthletePhoto(athlete.id, file);
+      setAthlete(res.athlete);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal upload foto");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleRemovePhoto() {
+    if (!athlete) return;
+    setUploadingPhoto(true);
+    try {
+      const res = await removeAthletePhoto(athlete.id);
+      setAthlete(res.athlete);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menghapus foto");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function handleCalibrate() {
     if (!athlete) return;
@@ -106,6 +148,52 @@ export default function ProfilSayaPage() {
   return (
     <div className="flex flex-col gap-4 px-5 pt-6 pb-10">
       <h1 className="text-xl font-bold text-ivory">Profil Saya</h1>
+
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-hairline bg-surface p-6 shadow-card">
+        <div className="relative">
+          <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-volt/40 bg-surface-raised">
+            {athlete.photoUrl ? (
+              <img src={athlete.photoUrl} alt={athlete.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Logo size={44} className="opacity-70" />
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handlePhotoPick}
+            disabled={uploadingPhoto}
+            className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-volt text-ink shadow-card disabled:opacity-50"
+            aria-label="Ubah foto profil"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 20h4l10-10a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L4 16v4z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoChange}
+          />
+        </div>
+        <div className="text-center">
+          <p className="text-base font-bold text-ivory">{athlete.name}</p>
+          <p className="text-xs text-muted">{athlete.sport}</p>
+        </div>
+        {athlete.photoUrl && (
+          <button onClick={handleRemovePhoto} disabled={uploadingPhoto} className="text-[11px] text-muted underline disabled:opacity-50">
+            {uploadingPhoto ? "Memproses…" : "Hapus foto"}
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4 shadow-card">
         <Row label="Nama" value={athlete.name} />

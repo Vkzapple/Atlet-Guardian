@@ -60,6 +60,7 @@ export interface Athlete {
   injuryHistory: InjuryHistory;
   baseline: Baseline;
   createdAt: string;
+  photoUrl: string | null;
   latestReading: Reading | null;
 }
 

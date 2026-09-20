@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Logo from "./Logo";
 
 interface LoginFormProps {
   onSubmit: (payload: { email: string; password: string }) => Promise<void>;
@@ -34,44 +35,56 @@ export default function LoginForm({ onSubmit, onSwitchToRegister }: LoginFormPro
   const labelClass = "text-xs font-medium text-muted";
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
-      <div className="flex flex-col gap-1.5">
-        <label className={labelClass}>Email</label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          autoComplete="email"
-          placeholder="kamu@email.com"
-          className={inputClass}
-        />
+    <div className="flex flex-col items-center gap-6 px-5 pt-10">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-volt/30 bg-surface shadow-card">
+          <Logo size={44} />
+        </div>
+        <div>
+          <h1 className="text-xl font-extrabold text-ivory">Athlete Guardian</h1>
+          <p className="mt-1 text-sm text-muted">Masuk untuk memantau kondisi fisik kamu secara real-time.</p>
+        </div>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <label className={labelClass}>Password</label>
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          className={inputClass}
-        />
-      </div>
-      {error && <p className="text-xs text-critical">{error}</p>}
-      <button
-        type="submit"
-        disabled={submitting}
-        className="mt-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-ivory disabled:opacity-50"
-      >
-        {submitting ? "Masuk…" : "Masuk"}
-      </button>
-      <button
-        type="button"
-        onClick={onSwitchToRegister}
-        className="text-center text-xs font-medium text-muted underline-offset-2 hover:underline"
-      >
-        Belum punya akun? Buat profil baru
-      </button>
-    </form>
+
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Email</label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            autoComplete="email"
+            placeholder="kamu@email.com"
+            className={inputClass}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Password</label>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={inputClass}
+          />
+        </div>
+        {error && <p className="text-xs text-critical">{error}</p>}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-ivory disabled:opacity-50"
+        >
+          {submitting ? "Masuk…" : "Masuk"}
+        </button>
+        <button
+          type="button"
+          onClick={onSwitchToRegister}
+          className="text-center text-xs font-medium text-muted underline-offset-2 hover:underline"
+        >
+          Belum punya akun? Buat profil baru
+        </button>
+      </form>
+    </div>
   );
 }
