@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Logo from "./Logo";
 
 interface LoginFormProps {
   onSubmit: (payload: { email: string; password: string }) => Promise<void>;
@@ -36,15 +35,9 @@ export default function LoginForm({ onSubmit, onSwitchToRegister }: LoginFormPro
 
   return (
     <div className="flex flex-col items-center gap-6 px-5 pt-10">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-volt/30 bg-surface shadow-card">
-          <Logo size={44} />
-        </div>
-        <div>
-          <h1 className="text-xl font-extrabold text-ivory">Athlete Guardian</h1>
-          <p className="mt-1 text-sm text-muted">Masuk untuk memantau kondisi fisik kamu secara real-time.</p>
-        </div>
-      </div>
+      <p className="text-center text-sm text-muted">
+        Masuk untuk memantau kondisi fisik kamu secara real-time.
+      </p>
 
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
         <div className="flex flex-col gap-1.5">
