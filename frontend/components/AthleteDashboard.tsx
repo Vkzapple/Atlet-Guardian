@@ -88,6 +88,7 @@ export default function AthleteDashboard({
         name={athlete.name}
         sport={athlete.sport}
         syncLabel={lastSynced ? `Sinkron ${formatRelativeTime(lastSynced.toISOString())}` : "Menyinkronkan…"}
+        photoUrl={athlete.photoUrl ?? undefined}
       />
 
       {!reading ? (
