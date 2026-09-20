@@ -15,6 +15,16 @@
   --color-critical: 255 84 112;
   --color-brand: 76 141 255;
   --color-pulse: 255 77 109;
+  --color-volt: 196 255 61;
+}
+
+@keyframes ai-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.animate-ai-glow {
+  animation: ai-glow 3s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
@@ -56,56 +66,4 @@ body {
 
 .safe-top {
   padding-top: env(safe-area-inset-top);
-}
-
-/* ------------------------------------------------------------------ */
-/* PWA / tampilan app native                                           */
-/* ------------------------------------------------------------------ */
-
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* Hilangkan efek "bounce" / pull-to-refresh bawaan browser saat dipakai sebagai app. */
-html,
-body {
-  overscroll-behavior-y: none;
-}
-
-a,
-button {
-  touch-action: manipulation;
-}
-
-/* Kontrol UI tidak perlu bisa diseleksi / long-press seperti teks biasa. */
-button,
-nav,
-header {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
-
-img {
-  -webkit-user-drag: none;
-}
-
-/* Cegah iOS Safari zoom otomatis saat field difokuskan (font < 16px memicu zoom). */
-@media (pointer: coarse) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-pulse-dot {
-    animation: none;
-  }
-  html,
-  body {
-    transition: none;
-  }
 }

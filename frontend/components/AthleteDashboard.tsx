@@ -11,6 +11,7 @@ import RecoveryCard from "./RecoveryCard";
 import AlertBanner from "./AlertBanner";
 import InjuryRiskCard from "./InjuryRiskCard";
 import PaceZonesCard from "./PaceZonesCard";
+import AthleteHero from "./AthleteHero";
 
 interface AthleteDashboardProps {
   initialAthlete: Athlete;
@@ -83,18 +84,11 @@ export default function AthleteDashboard({
 
   return (
     <div className="flex flex-col gap-6 px-5 pt-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted">{athlete.sport}</p>
-          <h1 className="text-xl font-bold text-ivory">{athlete.name}</h1>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-optimal" />
-          <span className="text-[11px] text-muted">
-            {lastSynced ? `Sinkron ${formatRelativeTime(lastSynced.toISOString())}` : "Menyinkronkan…"}
-          </span>
-        </div>
-      </header>
+      <AthleteHero
+        name={athlete.name}
+        sport={athlete.sport}
+        syncLabel={lastSynced ? `Sinkron ${formatRelativeTime(lastSynced.toISOString())}` : "Menyinkronkan…"}
+      />
 
       {!reading ? (
         <div className="rounded-2xl border border-dashed border-hairline bg-surface p-8 text-center">
@@ -113,6 +107,27 @@ export default function AthleteDashboard({
               subtitle={`Zona HR ${reading.hrZone} · ${reading.riskLevel} · ${formatRelativeTime(reading.timestamp)}`}
             />
           </div>
+
+          {reading.recommendation && (
+            <div className="relative overflow-hidden rounded-3xl border border-volt/25 bg-[linear-gradient(135deg,rgba(196,255,61,0.14),rgba(76,141,255,0.06))] p-4">
+              <div
+                className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-volt/20 blur-2xl animate-ai-glow"
+                aria-hidden
+              />
+              <div className="relative flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-volt">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z"
+                      fill="#0A0F1A"
+                    />
+                  </svg>
+                </span>
+                <p className="text-xs font-bold uppercase tracking-wide text-volt">Rekomendasi AI</p>
+              </div>
+              <p className="relative mt-2 text-sm leading-relaxed text-ivory">{reading.recommendation}</p>
+            </div>
+          )}
 
           {activeAlerts.length > 0 && (
             <div className="flex flex-col gap-2">
@@ -155,13 +170,6 @@ export default function AthleteDashboard({
               color="#4C8DFF"
             />
           </div>
-
-          {reading.recommendation && (
-            <div className="rounded-2xl border border-brand/30 bg-brand/10 p-4">
-              <p className="text-xs font-semibold text-brand">Rekomendasi AI</p>
-              <p className="mt-1 text-sm leading-relaxed text-ivory">{reading.recommendation}</p>
-            </div>
-          )}
 
           <InjuryRiskCard
             injuryRiskPercent={reading.injuryRiskPercent}
