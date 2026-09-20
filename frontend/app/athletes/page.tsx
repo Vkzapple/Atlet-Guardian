@@ -8,6 +8,7 @@ import { clearToken } from "@/lib/auth";
 import { Athlete } from "@/lib/types";
 import Logo from "@/components/Logo";
 import HistorySection from "@/components/HistorySection";
+import TargetGoals from "@/components/TargetGoals";
 
 const labelMap = {
   gender: { male: "Laki-laki", female: "Perempuan" },
@@ -213,6 +214,8 @@ export default function ProfilSayaPage() {
           />
         )}
       </div>
+
+      <TargetGoals athleteId={athlete.id} />
 
       {error && <p className="text-sm text-critical">{error}</p>}
       {message && <p className="text-sm text-optimal">{message}</p>}

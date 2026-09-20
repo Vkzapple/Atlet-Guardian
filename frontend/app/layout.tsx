@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
+// @ts-ignore -- TypeScript may not resolve CSS side-effect imports in some configurations.
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AppHeader from "@/components/AppHeader";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
+import SplashScreen from "@/components/SplashScreen";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -66,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${manrope.variable} ${jetbrainsMono.variable} font-body antialiased`}>
         <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col bg-ink">
+          <SplashScreen />
           <AppHeader />
           <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</main>
           <BottomNav />

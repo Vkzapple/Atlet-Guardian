@@ -15,6 +15,8 @@ import PaceZonesCard from "./PaceZonesCard";
 import AthleteHero from "./AthleteHero";
 import QuickActions from "./QuickActions";
 import SessionTracker from "./SessionTracker";
+import SignalQualityBadge from "./SignalQualityBadge";
+import { assessSignalQuality } from "@/lib/sensorQuality";
 
 interface AthleteDashboardProps {
   initialAthlete: Athlete;
@@ -214,6 +216,7 @@ export default function AthleteDashboard({
             featured
             live
           />
+          <SignalQualityBadge quality={assessSignalQuality(trends.hr)} />
 
           <div className="grid grid-cols-3 gap-2.5">
             <VitalCard

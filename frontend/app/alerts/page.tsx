@@ -49,23 +49,23 @@ export default function AlertsPage() {
 
   if (!athleteId) {
     return (
-      <div className="px-5 pt-6">
+      <div className="px-5 pt-8 text-center">
         <p className="text-sm text-muted">Buat profil kamu dulu di Dasbor untuk melihat peringatan.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 px-5 pt-6">
+    <div className="flex flex-col gap-4 px-5 pt-6 pb-8">
       <h1 className="text-xl font-bold text-ivory">Peringatan Kamu</h1>
 
-      <div className="flex gap-2 rounded-full bg-surface p-1">
+      <div className="flex gap-1.5 rounded-full border border-hairline bg-surface p-1">
         {(["active", "acknowledged"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
-              tab === t ? "bg-brand text-ivory" : "text-muted"
+              tab === t ? "bg-volt text-ink" : "text-muted"
             }`}
           >
             {t === "active" ? "Aktif" : "Selesai"}
@@ -74,13 +74,35 @@ export default function AlertsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted">Memuat…</p>
+        <div className="flex flex-col gap-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-surface" />
+          ))}
+        </div>
       ) : alerts.length === 0 ? (
-        <p className="text-sm text-muted">
-          {tab === "active" ? "Tidak ada peringatan aktif saat ini." : "Belum ada riwayat peringatan."}
-        </p>
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-optimal/10">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5 13l4 4L19 7"
+                stroke="#2FE6A3"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <p className="mt-3 text-sm font-medium text-ivory">
+            {tab === "active" ? "Tidak ada peringatan aktif" : "Belum ada riwayat peringatan"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {tab === "active"
+              ? "Kondisi fisik kamu terpantau normal saat ini."
+              : "Peringatan yang sudah kamu tandai selesai akan muncul di sini."}
+          </p>
+        </div>
       ) : (
-        <div className="flex flex-col gap-2 pb-6">
+        <div className="flex flex-col gap-2">
           {alerts.map((alert) => (
             <AlertBanner
               key={alert.id}
