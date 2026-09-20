@@ -98,9 +98,6 @@ export default function DashboardPage() {
   if (!athlete) {
     return (
       <div className="flex flex-col gap-4 px-5 pt-8">
-  import Logo from "@/components/Logo";
-
-// ...
 
 <div className="flex flex-col items-center gap-3 pb-2 text-center">
   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
