@@ -55,16 +55,10 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-
-  // 1) Bukan GET -> biarkan browser yang menangani.
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-
-  // 2) Cross-origin (backend API, Google Fonts, dll.) -> biarkan browser yang menangani.
   if (url.origin !== self.location.origin) return;
-
-  // 3) Endpoint API / data Next.js / RSC -> biarkan browser yang menangani.
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/_next/data/") ||
@@ -74,9 +68,6 @@ self.addEventListener("fetch", (event) => {
   ) {
     return;
   }
-
-  // 4) Navigasi halaman: selalu network. Kalau gagal (offline) -> tampilkan halaman /offline.
-  //    HTML sengaja tidak di-cache supaya sesi/token tidak pernah "terbekukan" di cache.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(async () => {
@@ -92,20 +83,14 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-
-  // 5) Aset build Next.js yang di-hash (immutable) -> cache-first.
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request));
     return;
   }
-
-  // 6) Ikon & manifest -> stale-while-revalidate.
   if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest") {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
-
-  // 7) Selain itu -> biarkan browser yang menangani.
 });
 
 async function cacheFirst(request) {
