@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import { useEffect, useState } from "react";
 
@@ -7,135 +7,164 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
-const DISMISS_KEY = "athlete-guardian-install-dismissed";
-const DISMISS_DAYS = 7;
-const SHOW_DELAY_MS = 4000;
-
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    // iOS Safari
     (navigator as unknown as { standalone?: boolean }).standalone === true
   );
 }
 
 function isIosSafari() {
   const ua = navigator.userAgent;
-  const isIos = /iphone|ipad|ipod/i.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
-  const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios|chrome|android/i.test(ua);
+  const isIos =
+    /iphone|ipad|ipod/i.test(ua) ||
+    (ua.includes("Mac") && "ontouchend" in document);
+  const isSafari =
+    /safari/i.test(ua) && !/crios|fxios|edgios|chrome|android/i.test(ua);
   return isIos && isSafari;
 }
 
-function recentlyDismissed() {
-  try {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    return Date.now() - Number(raw) < DISMISS_DAYS * 24 * 60 * 60 * 1000;
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Mengajak pengguna memasang app ke layar utama.
- * Murni UI + event browser; tidak ada fetching data.
+ * Tombol install PWA yang selalu tersedia di posisi fixed.
+ * Jika browser mendukung beforeinstallprompt, tombol langsung membuka prompt native.
+ * Pada iOS Safari, tombol menampilkan petunjuk "Tambah ke Layar Utama".
  */
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosHint, setShowIosHint] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [ios, setIos] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return;
+    if (isStandalone()) {
+      setInstalled(true);
+      return;
+    }
 
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    setIos(isIosSafari());
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      timer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
     };
+
     const onInstalled = () => {
-      setVisible(false);
+      setInstalled(true);
       setDeferred(null);
+      setShowHint(false);
     };
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
 
-    if (isIosSafari()) {
-      setShowIosHint(true);
-      timer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
-    }
-
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
-      if (timer) clearTimeout(timer);
     };
   }, []);
 
-  function dismiss() {
-    setVisible(false);
-    try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    } catch {
-      /* abaikan */
-    }
-  }
-
   async function install() {
-    if (!deferred) return;
+    if (ios) {
+      setShowHint(true);
+      return;
+    }
+
+    if (!deferred) {
+      setShowHint(true);
+      return;
+    }
+
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
+
+    if (outcome === "accepted") {
+      setInstalled(true);
+      setShowHint(false);
+    }
+
     setDeferred(null);
-    if (outcome === "accepted") setVisible(false);
-    else dismiss();
   }
 
-  if (!visible || (!deferred && !showIosHint)) return null;
+  if (installed) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md px-4">
-      <div className="flex items-start gap-3 rounded-2xl border border-hairline bg-surface-raised/95 p-3.5 shadow-card backdrop-blur">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-192.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ivory">Pasang Athlete Guardian</p>
-          {deferred ? (
-            <p className="mt-0.5 text-xs leading-snug text-muted">
-              Buka langsung dari layar utama, tampil layar penuh seperti app biasa.
-            </p>
-          ) : (
-            <p className="mt-0.5 text-xs leading-snug text-muted">
-              Ketuk tombol <span className="font-semibold text-ivory">Bagikan</span>, lalu pilih{" "}
-              <span className="font-semibold text-ivory">Tambah ke Layar Utama</span>.
-            </p>
-          )}
-          <div className="mt-2.5 flex items-center gap-2">
-            {deferred && (
+    <>
+      {/* Tombol install permanen, ditempatkan tepat di atas bottom navigation. */}
+      <div className="fixed inset-x-0 bottom-[calc(4.8rem+env(safe-area-inset-bottom))] z-[55] pointer-events-none mx-auto max-w-md px-5">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={install}
+            aria-label="Pasang Athlete Guardian"
+            className="pointer-events-auto flex items-center gap-2 rounded-full border border-brand/40 bg-brand px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
+          >
+            <InstallIcon />
+            <span>Pasang App</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Petunjuk fallback untuk browser yang tidak menyediakan prompt native dan iOS Safari. */}
+      {showHint && (
+        <div className="fixed inset-x-0 bottom-[calc(8.8rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md px-5">
+          <div className="rounded-2xl border border-hairline bg-surface-raised/98 p-4 shadow-card backdrop-blur">
+            <div className="flex items-start gap-3">
+              <img
+                src="/icons/icon-192.png"
+                alt=""
+                width={44}
+                height={44}
+                className="h-11 w-11 shrink-0 rounded-xl"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ivory">
+                  Pasang Athlete Guardian
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {ios
+                    ? "Ketuk tombol Bagikan di browser, lalu pilih Tambah ke Layar Utama."
+                    : "Gunakan menu browser lalu pilih Install app atau Tambahkan ke layar utama."}
+                </p>
+              </div>
               <button
-                onClick={install}
-                className="rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-white active:scale-95"
+                type="button"
+                onClick={() => setShowHint(false)}
+                aria-label="Tutup petunjuk"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted active:bg-hairline"
               >
-                Pasang
+                <CloseIcon />
               </button>
-            )}
-            <button onClick={dismiss} className="px-2 py-1.5 text-xs font-medium text-muted active:opacity-70">
-              Nanti saja
-            </button>
+            </div>
           </div>
         </div>
-        <button
-          onClick={dismiss}
-          aria-label="Tutup"
-          className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted active:bg-hairline"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-    </div>
+      )}
+    </>
+  );
+}
+
+function InstallIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 6l12 12M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
