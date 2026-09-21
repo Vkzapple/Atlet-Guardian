@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: "Athlete Guardian",
-    short_name: "Guardian",
+    short_name: "Athlete Guardian",
     description: "Pemantauan kondisi fisik atlet berbasis AI dan wearable secara real-time",
     lang: "id",
     dir: "ltr",
