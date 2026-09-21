@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   // <link rel="manifest"> otomatis dibuat Next.js dari app/manifest.ts
   appleWebApp: {
     capable: true,
-    title: "Guardian",
+    title: "Athlete Guardian",
     // "black": status bar hitam solid dengan teks putih -- terbaca di tema gelap maupun terang.
     statusBarStyle: "black"
   },
