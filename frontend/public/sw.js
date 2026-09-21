@@ -10,7 +10,7 @@
  * Naikkan VERSION setiap kali isi file ini berubah supaya cache lama dibersihkan.
  */
 
-const VERSION = "v1.3";
+const VERSION = "v1.4(demo version)";
 const STATIC_CACHE = `ag-static-${VERSION}`;
 const RUNTIME_CACHE = `ag-runtime-${VERSION}`;
 const OFFLINE_URL = "/offline";
