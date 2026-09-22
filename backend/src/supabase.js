@@ -383,6 +383,7 @@ function mapUser(row) {
     id: row.id,
     email: row.email,
     athleteId: row.athlete_id,
+    role: row.role || "athlete",
     createdAt: row.created_at
     // password_hash SENGAJA tidak diikutkan supaya tidak pernah bocor ke response API
   };
@@ -409,19 +410,36 @@ export async function getUserById(id) {
 }
 
 /**
- * Membuat akun (users) yang terhubung ke satu profil atlet (athletes).
+ * Cari user berdasarkan email DAN role tertentu -- dipakai saat athlete
+ * mengundang coach lewat email (memastikan yang diundang benar coach,
+ * bukan akun pegiat_olahraga/athlete biasa).
+ */
+export async function getUserByEmailAndRole(email, role) {
+  const user = await getUserByEmail(email);
+  if (!user || user.role !== role) return null;
+  return user;
+}
+
+/**
+ * Membuat akun (users), opsional terhubung ke satu profil atlet (athletes).
+ * athleteId boleh null untuk role 'coach' (coach tidak punya profil atlet).
  * Kalau pembuatan user gagal setelah atlet berhasil dibuat, atlet yang
  * baru dibuat itu dihapus lagi supaya tidak ada profil "yatim" tanpa akun.
  */
-export async function createUserAccount({ email, passwordHash, athleteId }) {
+export async function createUserAccount({ email, passwordHash, athleteId, role }) {
   const { data: row, error } = await supabase
     .from("users")
-    .insert({ email: email.toLowerCase(), password_hash: passwordHash, athlete_id: athleteId })
+    .insert({
+      email: email.toLowerCase(),
+      password_hash: passwordHash,
+      athlete_id: athleteId ?? null,
+      role: role || "athlete"
+    })
     .select("*")
     .single();
 
   if (error) {
-    await deleteAthlete(athleteId).catch(() => {});
+    if (athleteId) await deleteAthlete(athleteId).catch(() => {});
     if (error.code === "23505") {
       throw new Error("Email sudah terdaftar. Silakan login atau gunakan email lain.");
     }
@@ -429,4 +447,83 @@ export async function createUserAccount({ email, passwordHash, athleteId }) {
   }
 
   return mapUser(row);
+}
+
+// ================== COACH CONNECTIONS ==================
+function mapConnection(row) {
+  return {
+    id: row.id,
+    coachUserId: row.coach_user_id,
+    athleteId: row.athlete_id,
+    status: row.status,
+    createdAt: row.created_at,
+    acceptedAt: row.accepted_at
+  };
+}
+
+/**
+ * Athlete mengundang coach (status awal 'pending'). Coach harus accept
+ * dulu lewat acceptCoachConnection sebelum bisa lihat data atlet itu.
+ */
+export async function createCoachConnection(coachUserId, athleteId) {
+  const { data: row, error } = await supabase
+    .from("coach_connections")
+    .insert({ coach_user_id: coachUserId, athlete_id: athleteId, status: "pending" })
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Kamu sudah pernah mengundang coach ini sebelumnya.");
+    }
+    throw new Error(error.message);
+  }
+  return mapConnection(row);
+}
+
+/**
+ * Semua koneksi milik satu coach (pending + accepted), lengkap dengan data
+ * atlet masing-masing -- dipakai buat Coach Dashboard.
+ */
+export async function getConnectionsForCoach(coachUserId) {
+  const { data: rows, error } = await supabase
+    .from("coach_connections")
+    .select("*")
+    .eq("coach_user_id", coachUserId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const results = [];
+  for (const row of rows) {
+    const athlete = await getAthleteById(row.athlete_id);
+    results.push({ ...mapConnection(row), athlete });
+  }
+  return results;
+}
+
+export async function acceptCoachConnection(connectionId, coachUserId) {
+  const { data: row, error } = await supabase
+    .from("coach_connections")
+    .update({ status: "accepted", accepted_at: new Date().toISOString() })
+    .eq("id", connectionId)
+    .eq("coach_user_id", coachUserId) // pastikan cuma coach pemilik yang bisa accept
+    .select("*")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return mapConnection(row);
+}
+
+/**
+ * Hapus koneksi -- boleh dilakukan coach ATAU athlete yang bersangkutan
+ * (masing-masing pihak bisa memutus hubungan sepihak).
+ */
+export async function removeCoachConnection(connectionId, { coachUserId, athleteId }) {
+  let query = supabase.from("coach_connections").delete().eq("id", connectionId);
+  if (coachUserId) query = query.eq("coach_user_id", coachUserId);
+  if (athleteId) query = query.eq("athlete_id", athleteId);
+
+  const { error } = await query;
+  if (error) throw new Error(error.message);
 }

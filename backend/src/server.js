@@ -4,6 +4,7 @@ import cors from "cors";
 import { athletesRouter } from "./routes/athletes.js";
 import { alertsRouter } from "./routes/alerts.js";
 import { authRouter } from "./routes/auth.js";
+import { coachRouter } from "./routes/coach.js";
 import { connectMqtt } from "./mqtt.js";
 
 const app = express();
@@ -19,6 +20,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/athletes", athletesRouter);
 app.use("/api/alerts", alertsRouter);
+app.use("/api/coach", coachRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Endpoint tidak ditemukan" });
