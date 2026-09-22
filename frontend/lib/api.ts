@@ -33,25 +33,28 @@ export function login(payload: { email: string; password: string }) {
 }
 
 export function register(payload: {
+  role: "pegiat_olahraga" | "athlete" | "coach";
   email: string;
   password: string;
   name: string;
-  sport: string;
-  age: number;
-  gender: Gender;
-  heightCm: number;
-  weightKg: number;
-  trainingHistory: TrainingHistory;
+  sport?: string;
+  age?: number;
+  gender?: Gender;
+  heightCm?: number;
+  weightKg?: number;
+  trainingHistory?: TrainingHistory;
   injuryHistory?: InjuryHistory;
+  hasCoach?: boolean;
+  coachEmail?: string;
 }) {
-  return request<{ token: string; athlete: Athlete }>("/api/auth/register", {
+  return request<{ token: string; athlete: Athlete | null; role: string }>("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(payload)
   });
 }
 
 export function getMe() {
-  return request<{ athlete: Athlete }>("/api/auth/me");
+  return request<{ athlete: Athlete | null; role: string }>("/api/auth/me");
 }
 
 export function getAthletes() {
@@ -124,6 +127,31 @@ export function removeAthletePhoto(id: string) {
   return request<{ athlete: Athlete }>(`/api/athletes/${id}/photo`, {
     method: "DELETE"
   });
+}
+
+// ================== COACH ==================
+export function getCoachAthletes() {
+  return request<{ connections: Array<{ id: string; status: string; athlete: Athlete }> }>(
+    "/api/coach/athletes"
+  );
+}
+
+export function connectCoach(coachEmail: string) {
+  return request<{ connection: { id: string; status: string } }>("/api/coach/connect", {
+    method: "POST",
+    body: JSON.stringify({ coachEmail })
+  });
+}
+
+export function acceptCoachConnection(connectionId: string) {
+  return request<{ connection: { id: string; status: string } }>(
+    `/api/coach/connect/${connectionId}/accept`,
+    { method: "PATCH" }
+  );
+}
+
+export function removeCoachConnection(connectionId: string) {
+  return request<void>(`/api/coach/connect/${connectionId}`, { method: "DELETE" });
 }
 
 export function getAlerts(params?: { athleteId?: string; status?: "active" | "acknowledged" }) {

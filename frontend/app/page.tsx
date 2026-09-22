@@ -4,19 +4,18 @@ import { useEffect, useState } from "react";
 import { login, register, getMe, getAthleteHistory, getAlerts } from "@/lib/api";
 import { setMyAthleteId } from "@/lib/myAthlete";
 import { getToken, setToken, clearToken } from "@/lib/auth";
-import { Athlete, Reading, AlertItem, Gender, TrainingHistory, InjuryHistory } from "@/lib/types";
+import { Athlete, Reading, AlertItem } from "@/lib/types";
 import AthleteDashboard from "@/components/AthleteDashboard";
-import AddAthleteForm from "@/components/AddAthleteForm";
-import LoginForm from "@/components/LoginForm";
-import Logo from "@/components/Logo";
+import OnboardingFlow from "@/components/OnboardingFlow";
+import { RegisterPayload } from "@/components/RegisterForm";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [history, setHistory] = useState<Reading[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [loggedIn, setLoggedIn] = useState(false);
 
   async function loadDashboardData(id: string) {
     try {
@@ -26,8 +25,8 @@ export default function DashboardPage() {
       ]);
       setHistory(history);
       setAlerts(alerts);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data kamu");
+    } catch {
+      return;
     }
   }
 
@@ -40,14 +39,15 @@ export default function DashboardPage() {
       }
 
       try {
-        // Validasi token ke backend sekaligus ambil profil terbaru.
-        // Kalau token sudah kedaluwarsa/invalid, ini akan melempar error.
-        const { athlete } = await getMe();
-        setMyAthleteId(athlete.id);
-        setAthlete(athlete);
-        await loadDashboardData(athlete.id);
-      } catch (err) {
-        // Token tidak valid lagi -> anggap sesi habis, kembali ke layar login.
+        const res = await getMe();
+        setRole(res.role);
+        setLoggedIn(true);
+        if (res.athlete) {
+          setMyAthleteId(res.athlete.id);
+          setAthlete(res.athlete);
+          await loadDashboardData(res.athlete.id);
+        }
+      } catch {
         clearToken();
       } finally {
         setLoading(false);
@@ -61,27 +61,24 @@ export default function DashboardPage() {
   async function handleLogin(payload: { email: string; password: string }) {
     const res = await login(payload);
     setToken(res.token);
-    setMyAthleteId(res.athlete.id);
-    setAthlete(res.athlete);
-    await loadDashboardData(res.athlete.id);
+    setRole((res as any).role || "athlete");
+    setLoggedIn(true);
+    if (res.athlete) {
+      setMyAthleteId(res.athlete.id);
+      setAthlete(res.athlete);
+      await loadDashboardData(res.athlete.id);
+    }
   }
 
-  async function handleRegister(payload: {
-    email: string;
-    password: string;
-    name: string;
-    sport: string;
-    age: number;
-    gender: Gender;
-    heightCm: number;
-    weightKg: number;
-    trainingHistory: TrainingHistory;
-    injuryHistory: InjuryHistory;
-  }) {
+  async function handleRegister(payload: RegisterPayload) {
     const res = await register(payload);
     setToken(res.token);
-    setMyAthleteId(res.athlete.id);
-    setAthlete(res.athlete);
+    setRole(res.role);
+    setLoggedIn(true);
+    if (res.athlete) {
+      setMyAthleteId(res.athlete.id);
+      setAthlete(res.athlete);
+    }
     setHistory([]);
     setAlerts([]);
   }
@@ -94,30 +91,21 @@ export default function DashboardPage() {
     );
   }
 
-  // Belum login sama sekali -- tampilkan form login/register, bukan dashboard.
+  // Belum login sama sekali -- tampilkan alur onboarding, bukan dashboard.
+  if (!loggedIn) {
+    return <OnboardingFlow onLogin={handleLogin} onRegister={handleRegister} />;
+  }
+
+  // Coach tidak punya profil atlet sendiri -- arahkan ke Coach Dashboard.
+  if (role === "coach") {
+    if (typeof window !== "undefined") window.location.href = "/coach";
+    return null;
+  }
+
   if (!athlete) {
     return (
-      <div className="flex flex-col gap-4 px-5 pt-8">
-
-<div className="flex flex-col items-center gap-3 pb-2 text-center">
-  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface">
-    <Logo size={40} />
-  </div>
-  <div>
-    <h1 className="text-lg font-bold text-ivory">Athlete Guardian</h1>
-    <p className="mt-1 text-sm text-muted">
-      {authMode === "login"
-        ? "Masuk untuk memantau kondisi fisik kamu secara real-time."
-        : "Buat akun untuk mulai memantau kondisi fisik secara real-time dari wearable device."}
-    </p>
-  </div>
-</div>
-        {error && <p className="text-center text-sm text-critical">{error}</p>}
-        {authMode === "login" ? (
-          <LoginForm onSubmit={handleLogin} onSwitchToRegister={() => setAuthMode("register")} />
-        ) : (
-          <AddAthleteForm onSubmit={handleRegister} onSwitchToLogin={() => setAuthMode("login")} />
-        )}
+      <div className="px-5 pt-8 text-center">
+        <p className="text-sm text-muted">Profil tidak ditemukan. Coba login ulang.</p>
       </div>
     );
   }
